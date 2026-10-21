@@ -226,8 +226,10 @@ class Agent:
         known = self.roles()
         people = {}
         for person in contributors:
+            if not isinstance(person, dict):
+                continue
             name = str(person.get("name", "")).strip()
-            roles = [r for r in person.get("roles", []) if r in known]
+            roles = [r for r in person.get("roles") or [] if isinstance(r, str) and r in known]
             if name and roles:
                 people.setdefault(name, set()).update(roles)
         names = list(people)

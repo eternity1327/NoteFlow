@@ -72,7 +72,17 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open http://localhost:5000. Set your preferences, then rate a few ideas in the Studio and watch the Engine tab.
+Open http://127.0.0.1:5000. Set your preferences, then rate a few ideas in the Studio and watch the Engine tab.
+
+## Deploy online
+
+The repo includes `render.yaml`, so it deploys to Render's free plan in a few clicks:
+
+1. Sign in at https://render.com with your GitHub account.
+2. Click **New** → **Blueprint**, pick this repo, then **Apply**.
+3. Wait for the build to finish and open the `.onrender.com` link.
+
+Each visitor gets their own agent, kept by a browser cookie. On the free plan the server sleeps after 15 minutes without visitors, so the first visit after that can take up to a minute.
 
 ## Test
 
@@ -80,12 +90,13 @@ Open http://localhost:5000. Set your preferences, then rate a few ideas in the S
 pytest
 ```
 
-The tests cover setup rules, rating, change requests, typed request parsing, saving and resetting, chord naming, request steering, and split sheet totals.
+The tests cover setup rules, rating, change requests, typed request parsing, saving and resetting, chord naming, request steering, split sheet totals, and separate sessions for each visitor.
 
 ## Project structure
 
 ```
-app.py          Flask API
+app.py          Flask API, one session per visitor
+render.yaml     Render deployment settings
 agent.py        MeTTa wrapper: setup, score, explain, learn, history, split sheet
 composer.py     Chords, voicings, structures and lyric sketches
 metta/          MeTTa rules and logic
