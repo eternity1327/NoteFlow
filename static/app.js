@@ -3,15 +3,39 @@ const $$ = (selector) => [...document.querySelectorAll(selector)];
 
 const COLORS = ["#6c3bff", "#35a7ff", "#48f0e5", "#a98bff", "#ffb86b", "#ff6b81"];
 const KIND_NAMES = {
-  like: "Reinforced",
-  dislike: "Rejected",
-  keep: "Kept for song",
-  request: "Change request",
-  setup: "Calibrated",
-  restore: "Restored",
+  like: "You liked it",
+  dislike: "Not for you",
+  keep: "Kept for the song",
+  request: "You asked for a change",
+  setup: "Starting taste",
+  restore: "Picked up where you left off",
 };
-const TAB_NAMES = { studio: "Studio", preferences: "Preferences", engine: "Learning engine", split: "Split sheet" };
+const TAB_NAMES = { studio: "Create", preferences: "Your taste", engine: "What it learned", split: "Credits" };
 const HOOKS = ["Chorus", "Drop"];
+const GROUPS = [
+  ["Mood", ["darker", "brighter"]],
+  ["Speed", ["faster", "slower"]],
+  ["Feel", ["softer", "more-energy", "groovier", "steadier"]],
+  ["Chords", ["simpler", "richer"]],
+  ["Song", ["shorter", "longer", "new-lyrics"]],
+];
+const PHRASES = {
+  mood: (v) => `a ${v} mood`,
+  progression: (v) => `${v} chord progressions`,
+  harmony: (v) => ({ triads: "simple chords", sevenths: "7th chords", extended: "rich 9th chords" })[v],
+  rhythm: (v) => ({ pad: "long held chords", syncopated: "syncopated rhythms", arpeggio: "arpeggios" })[v],
+  tempo: (v) => `${v} tempos`,
+  structure: (v) => ({ short: "short verse–chorus songs", classic: "classic songs with a bridge", "build-drop": "build-and-drop songs" })[v],
+  theme: (v) => `lyrics about ${v}`,
+};
+const REASON = {
+  loves: "You love",
+  likes: "You like",
+  neutral: "Something new to try:",
+  dislikes: "You don't usually like",
+  avoids: "You usually avoid",
+};
+const NOW = { loves: "Now loves", likes: "Now likes", dislikes: "Now dislikes", avoids: "Now avoids", neutral: "No longer has an opinion on" };
 
 let state = null;
 let suggestion = null;
@@ -26,6 +50,21 @@ const audio = { ctx: null, nodes: [], timers: [] };
 const esc = (text) => String(text ?? "").replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 const signed = (n) => (n > 0 ? `+${n}` : `${n}`);
 const band = (bpm) => (bpm < 90 ? "slow" : bpm < 115 ? "medium" : "fast");
+const phrase = (kind, value) => PHRASES[kind]?.(value) || `${kind} ${value}`;
+const positive = (stance) => stance === "likes" || stance === "loves";
+
+function changeSentence(c) {
+  const what = phrase(c.kind, c.value);
+  if (c.from_stance !== c.to_stance) return `${NOW[c.to_stance]} ${what}`;
+  const more = c.to > c.from;
+  if (positive(c.to_stance)) return `Likes ${what} ${more ? "even more" : "a bit less"}`;
+  return `Dislikes ${what} ${more ? "a bit less" : "even more"}`;
+}
+
+function changeItem(c, tag = "li") {
+  const up = c.to > c.from ? "up" : "down";
+  return `<${tag} class="learned ${up}"><span>${esc(changeSentence(c))}</span><small>${signed(c.from)} → ${signed(c.to)}</small></${tag}>`;
+}
 
 async function api(path, body) {
   const options = body === undefined
@@ -62,7 +101,8 @@ function stopAudio() {
   audio.timers.forEach(clearTimeout);
   audio.nodes = [];
   audio.timers = [];
-  $$(".chord").forEach((c) => c.classList.remove("on"));
+  $$("#chords .chord").forEach((c) => c.classList.remove("on"));
+  $("#play").classList.remove("playing");
 }
 
 function tone(freq, start, length, type, level) {
@@ -100,7 +140,8 @@ function play() {
   audio.ctx = audio.ctx || new AudioContext();
   const idea = suggestion.idea;
   const beat = 60 / idea.bpm;
-  const cards = $$(".chord");
+  const cards = $$("#chords .chord");
+  $("#play").classList.add("playing");
   let time = audio.ctx.currentTime + 0.05;
   idea.chords.forEach((chord, i) => {
     strum(idea.features.rhythm, chord.midi, time, beat);
@@ -110,12 +151,13 @@ function play() {
     audio.timers.push(setTimeout(() => cards[i]?.classList.remove("on"), delay + beat * 4000));
     time += beat * 4;
   });
+  audio.timers.push(setTimeout(stopAudio, (time - audio.ctx.currentTime) * 1000));
 }
 
 function renderHeader() {
   const label = state?.ready
-    ? `Session: ${state.options.genres[state.profile.genre]} · ${state.options.moods[state.profile.mood]}`
-    : "Not calibrated";
+    ? `${state.options.genres[state.profile.genre]} · ${state.options.moods[state.profile.mood]}`
+    : "Not set up yet";
   $("#session-label").textContent = label;
   if (state?.ready && !$("#who").value) $("#who").value = state.profile.name;
 }
@@ -127,52 +169,50 @@ function renderSuggestion() {
   $("#play").disabled = !ready;
   if (!ready) return;
   const { idea, reasons } = suggestion;
-  const [root, mode] = idea.key.split(" ");
-  $("#bpm-readout").textContent = idea.bpm;
-  $("#key-readout").textContent = `${root} ${mode === "minor" ? "MIN" : "MAJ"}`;
-  $("#tile-key").textContent = idea.key;
-  $("#tile-tempo").textContent = `${idea.bpm} BPM`;
-  $("#tile-genre").textContent = state.options.genres[state.profile.genre];
-  $("#tile-mood").textContent = state.options.moods[idea.features.mood];
-  $("#pick-badge").innerHTML = suggestion.explored
-    ? `<span class="pill blue">Exploring: random pick to learn something new</span>`
-    : `<span class="pill cyan">Best of ${suggestion.considered} by MeTTa score</span>`;
+  $("#pick-note").textContent = suggestion.explored
+    ? "Trying something new to learn your taste"
+    : `Best match for your taste, out of ${suggestion.considered} ideas`;
+  $("#pick-note").className = `pick-note ${suggestion.explored ? "explore" : ""}`;
+  $("#idea-title").textContent = `${idea.key[0].toUpperCase()}${idea.key.slice(1)} · ${idea.bpm} BPM`;
+  $("#idea-meta").textContent = `${state.options.genres[state.profile.genre]} · ${state.options.moods[idea.features.mood]} mood · ${phrase("harmony", idea.features.harmony)} · ${phrase("rhythm", idea.features.rhythm)}`;
+  $("#chords").innerHTML = idea.chords
+    .map((c) => `<div class="chord"><b>${esc(c.name)}</b><small>${esc(c.roman)} · ${esc(c.function)}</small></div>`)
+    .join('<span class="chord-arrow">→</span>');
   $("#sections").innerHTML = idea.structure
-    .map((s) => `<span class="${HOOKS.includes(s.section) ? "hook" : ""}">${esc(s.section)} (${s.bars} bars)</span>`)
+    .map((x) => `<span class="${HOOKS.includes(x.section) ? "hook" : ""}">${esc(x.section)} · ${x.bars} bars</span>`)
     .join("");
-  $("#chords").innerHTML = idea.chords.map((c, i) => chordCard(c, i, idea)).join("");
-  $("#theme-tag").textContent = `theme: ${idea.features.theme}`;
+  $("#theme-tag").textContent = `About ${idea.features.theme}`;
   $("#lyrics").innerHTML = idea.lyrics.map((line) => `<li>${esc(line)}</li>`).join("");
-  $("#score-tag").textContent = `MeTTa score ${signed(suggestion.score)}`;
+  $("#voicings").innerHTML = idea.chords.map(voicingCard).join("");
   $("#reasons").innerHTML = reasons.map(reasonRow).join("");
   $$(".verdict").forEach((b) => (b.disabled = false));
   $("#undo").disabled = !state.can_undo;
 }
 
-function chordCard(chord, i, idea) {
+function voicingCard(chord) {
   const low = Math.min(...chord.midi);
   const range = Math.max(1, Math.max(...chord.midi) - low);
   const bars = chord.midi
     .map((m, j) => `<div><span>${esc(chord.notes[j])}</span><i style="width:${30 + (70 * (m - low)) / range}%"></i></div>`)
     .join("");
-  return `
-    <div class="chord">
-      <div class="chord-top"><span class="eyebrow">Bar 0${i + 1} · ${esc(chord.function)}</span><span class="pill mono">${esc(chord.roman)}</span></div>
-      <div class="chord-name">${esc(chord.name)}</div>
-      <div class="voicing">${bars}</div>
-      <div class="chord-foot"><span>${esc(idea.features.harmony)}</span><span>${esc(idea.features.rhythm)}</span></div>
-    </div>`;
+  return `<div class="voicing-card"><b>${esc(chord.name)}</b><div class="voicing">${bars}</div></div>`;
 }
 
 function reasonRow(r) {
   const mood = r.weight > 0 ? "up" : r.weight < 0 ? "down" : "";
-  const why = r.shaped_by ? `Shaped by: ${esc(r.shaped_by)}` : "Not learned yet";
-  return `<li><span>${esc(r.kind)}: <b>${esc(r.value)}</b></span><span class="w ${mood}">${signed(r.weight)} · ${esc(r.stance)}</span><small>${why}</small></li>`;
+  const source = r.shaped_by === "Your preferences" ? "From your starting taste" : r.shaped_by ? `Learned from: ${r.shaped_by}` : "Not rated yet";
+  return `<li class="${mood}"><span>${esc(REASON[r.stance])} <b>${esc(phrase(r.kind, r.value))}</b></span><span class="w">${signed(r.weight)}</span><small>${esc(source)}</small></li>`;
 }
 
 function renderRequests() {
-  $("#request-chips").innerHTML = Object.entries(state.options.requests)
-    .map(([id, label]) => `<button class="chip" data-change="${id}">+ ${esc(label)}</button>`)
+  const labels = state.options.requests;
+  const used = new Set(GROUPS.flatMap(([, ids]) => ids));
+  const groups = [...GROUPS, ["More", Object.keys(labels).filter((id) => !used.has(id))]];
+  $("#request-groups").innerHTML = groups
+    .map(([name, ids]) => ids.filter((id) => labels[id]))
+    .map((ids, i) => (ids.length
+      ? `<div class="group"><span>${groups[i][0]}</span>${ids.map((id) => `<button class="chip" data-change="${id}">${esc(labels[id])}</button>`).join("")}</div>`
+      : ""))
     .join("");
 }
 
@@ -192,9 +232,9 @@ function renderPreferences() {
   $("#tempo").value = choice.bpm;
   $("#tempo-value").textContent = choice.bpm;
   $("#tempo-band").textContent = band(choice.bpm);
-  $("#seed").textContent = state.ready ? state.seed_text : "Save your preferences to generate the starting rules.";
+  $("#seed").textContent = state.ready ? state.seed_text : "Save your taste to create the starting rules.";
   $("#calibrate-note").textContent = state.ready && state.version > 0
-    ? "Saving again resets what the agent has learned so far."
+    ? "Saving again starts over and forgets what NoteFlow has learned."
     : "";
 }
 
@@ -205,22 +245,14 @@ function timeAgo(iso) {
   return `${Math.floor(seconds / 3600)}h ago`;
 }
 
-function deltaChip(c) {
-  const step = c.to - c.from;
-  const stance = c.from_stance !== c.to_stance ? ` · ${c.from_stance} → ${c.to_stance}` : "";
-  return `<span class="delta ${step > 0 ? "up" : "down"}">${signed(step)} ${esc(c.kind)} ${esc(c.value)}${stance}</span>`;
-}
-
 function entryCard(e) {
   const changes = e.changes || [];
   const parts = [
-    `<div class="entry-head"><span class="kind ${e.kind}">${KIND_NAMES[e.kind]}</span><span class="mono muted">v${e.version} · ${timeAgo(e.time)} · ${e.count} rules</span></div>`,
-    `<div>${esc(e.label)}</div>`,
+    `<div class="entry-head"><span class="kind ${e.kind}">${KIND_NAMES[e.kind]}</span><span class="muted small">Update ${e.version} · ${timeAgo(e.time)}</span></div>`,
+    e.kind === "setup" ? `<div>${esc(e.label.replace("Calibrated from preferences: ", "Started from your taste: "))}</div>` : `<div>${esc(e.label)}</div>`,
     e.quote ? `<div class="quote">"${esc(e.quote)}"</div>` : "",
-    e.before ? `<div class="ba"><span>Before</span>${esc(e.before)}</div>` : "",
-    changes.length ? `<div class="arrow">↓ applied ${changes.length} rule change${changes.length > 1 ? "s" : ""}</div>` : "",
-    e.after ? `<div class="ba after"><span>After: next idea</span>${esc(e.after)}</div>` : "",
-    changes.length ? `<div class="deltas">${changes.map(deltaChip).join("")}</div>` : "",
+    changes.length ? `<ul class="learned-list">${changes.map((c) => changeItem(c)).join("")}</ul>` : "",
+    e.before ? `<div class="ba-row"><div class="ba"><span>Before</span><b>${esc(e.before)}</b></div><div class="ba-arrow">→</div><div class="ba after"><span>Next idea</span><b>${esc(e.after || "")}</b></div></div>` : "",
   ];
   return `<div class="entry ${e.version === freshVersion ? "fresh" : ""}">${parts.join("")}</div>`;
 }
@@ -228,7 +260,7 @@ function entryCard(e) {
 function renderRules() {
   const value = state[rulesView];
   if (Array.isArray(value) && !value.length) {
-    $("#rules").innerHTML = `<span class="muted">No changes since setup yet. Rate an idea to teach the agent.</span>`;
+    $("#rules").innerHTML = `<span class="muted">No changes yet. React to an idea to teach NoteFlow.</span>`;
     return;
   }
   const lines = Array.isArray(value) ? value : value.split("\n");
@@ -245,17 +277,17 @@ function renderBadge() {
 
 function renderEngine() {
   if (!state.ready) {
-    $("#history").innerHTML = `<div class="panel muted">Set your preferences to start the learning engine.</div>`;
+    $("#history").innerHTML = `<div class="panel muted">Set your taste first, then react to a few ideas.</div>`;
     return;
   }
   const feedback = state.history.filter((h) => ["like", "dislike", "keep", "request"].includes(h.kind)).length;
   $("#stat-rules").textContent = `${state.seed_count} → ${state.rule_count}`;
-  $("#stat-version").textContent = `v${state.version}`;
+  $("#stat-version").textContent = state.version;
   $("#stat-feedback").textContent = feedback;
   $("#stat-kept").textContent = state.song.length;
   const peak = Math.max(...state.history.map((h) => h.count), 1);
   $("#growth").innerHTML = state.history
-    .map((h) => `<i title="v${h.version}: ${h.count} rules" style="height:${12 + (88 * h.count) / peak}%"></i>`)
+    .map((h) => `<i title="Update ${h.version}: ${h.count} taste rules" style="height:${12 + (88 * h.count) / peak}%"></i>`)
     .join("");
   $("#history").innerHTML = state.history.slice().reverse().map(entryCard).join("");
   renderRules();
@@ -347,20 +379,13 @@ function renderAll() {
   renderSplit();
 }
 
-function summarize(changes) {
-  if (!changes.length) return "No rule changes.";
-  const top = changes.slice(0, 3).map((c) => `${c.kind} ${c.value} ${signed(c.from)}→${signed(c.to)}`);
-  const more = changes.length > 3 ? ` and ${changes.length - 3} more` : "";
-  return `${top.join(", ")}${more}.`;
-}
-
 function showChanged(entry) {
   const changes = entry.changes || [];
-  const more = changes.length > 6 ? `<span class="delta">+${changes.length - 6} more in Engine</span>` : "";
+  const more = changes.length > 5 ? `<li class="learned muted">…and ${changes.length - 5} more in "What it learned"</li>` : "";
   $("#changed-label").textContent = entry.label;
   $("#changed-before").textContent = entry.before;
   $("#changed-after").textContent = entry.after;
-  $("#changed-deltas").innerHTML = changes.slice(0, 6).map(deltaChip).join("") + more;
+  $("#changed-list").innerHTML = changes.slice(0, 5).map((c) => changeItem(c)).join("") + more;
   $("#changed").hidden = false;
 }
 
@@ -371,7 +396,8 @@ function learned(result) {
   renderAll();
   showChanged(result.entry);
   window.scrollTo({ top: 0, behavior: "smooth" });
-  toast(`Learned: ${summarize(result.entry.changes)} New idea ready.`);
+  const n = result.entry.changes.length;
+  toast(`Got it. NoteFlow updated ${n} taste rule${n === 1 ? "" : "s"} and wrote a new idea.`);
   play();
 }
 
@@ -387,7 +413,7 @@ function clearAgreements() {
 
 let busy = false;
 
-async function guarded(task, label = "Composing…") {
+async function guarded(task, label = "Writing a new idea…") {
   if (busy) return;
   busy = true;
   $("#busy span").textContent = label;
@@ -404,8 +430,7 @@ async function guarded(task, label = "Composing…") {
 
 $$(".tabs button").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
 $$(".go-preferences").forEach((b) => b.addEventListener("click", () => showTab("preferences")));
-$("#play").addEventListener("click", play);
-$("#stop").addEventListener("click", stopAudio);
+$("#play").addEventListener("click", () => ($("#play").classList.contains("playing") ? stopAudio() : play()));
 
 $("#regenerate").addEventListener("click", () => guarded(async () => {
   suggestion = await api("/api/suggest", {});
@@ -419,7 +444,7 @@ $$(".verdict").forEach((button) => button.addEventListener("click", () => guarde
   learned(await api("/api/feedback", body));
 })));
 
-$("#request-chips").addEventListener("click", (e) => {
+$("#request-groups").addEventListener("click", (e) => {
   const change = e.target.closest("[data-change]")?.dataset.change;
   if (!change) return;
   guarded(async () => learned(await api("/api/request", { id: suggestion.idea.id, changes: [change], who: $("#who").value })));
@@ -455,7 +480,7 @@ $("#tempo").addEventListener("input", (e) => {
 
 $("#calibrate").addEventListener("click", () => guarded(async () => {
   if (!choice.genre || !choice.mood) throw new Error("Pick a genre and a mood first.");
-  if (state.ready && state.version > 0 && !confirm("Recalibrating resets what the agent has learned. Continue?")) return;
+  if (state.ready && state.version > 0 && !confirm("This starts over and forgets what NoteFlow has learned. Continue?")) return;
   const name = $("#pref-name").value.trim() || "You";
   const result = await api("/api/setup", { name, genre: choice.genre, mood: choice.mood, bpm: choice.bpm });
   state = result.state;
@@ -465,18 +490,18 @@ $("#calibrate").addEventListener("click", () => guarded(async () => {
   $("#changed").hidden = true;
   renderAll();
   showTab("studio");
-  toast(`Calibrated: the agent starts with ${state.seed_count} MeTTa rules from your preferences.`);
-}, "Calibrating…"));
+  toast(`All set. NoteFlow starts with ${state.seed_count} taste rules from your choices. Press play!`);
+}, "Setting up your taste…"));
 
 $("#reset").addEventListener("click", () => guarded(async () => {
-  if (!confirm("Forget everything learned and go back to the rules from your preferences?")) return;
+  if (!confirm("Forget everything NoteFlow learned and start again from your taste?")) return;
   const result = await api("/api/reset", {});
   state = result.state;
   suggestion = result.suggestion;
   seenVersion = 0;
   $("#changed").hidden = true;
   renderAll();
-}, "Resetting…"));
+}, "Starting over…"));
 
 $("#undo").addEventListener("click", () => guarded(async () => {
   const result = await api("/api/undo", {});
@@ -484,7 +509,7 @@ $("#undo").addEventListener("click", () => guarded(async () => {
   suggestion = result.suggestion;
   $("#changed").hidden = true;
   renderAll();
-  toast(`Undid "${result.undone}". The rules are back to the previous version.`);
+  toast(`Undone. NoteFlow forgot "${result.undone}" and went back to the previous idea.`);
 }, "Undoing…"));
 
 $$(".seg button").forEach((b) => b.addEventListener("click", () => {
@@ -531,10 +556,10 @@ $("#check").addEventListener("click", () => guarded(async () => {
   const box = $("#check-result");
   box.className = `check-result ${result.ok ? "ok" : "bad"}`;
   box.innerHTML = result.ok
-    ? `<li>MeTTa check passed: ${result.total}% allocated, and every collaborator has a name, a role and a share.</li>`
+    ? `<li>Looks good: shares add up to ${result.total}%, and everyone has a name, a role and a share.</li>`
     : result.problems.map((problem) => `<li>${esc(problem)}</li>`).join("");
   box.hidden = false;
-}, "Checking…"));
+}, "Checking the split…"));
 
 function sheetData() {
   return {

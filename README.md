@@ -17,10 +17,10 @@ Musicians often struggle to develop ideas in their own style, and co-writers rar
 
 1. **Musical preference setup.** Pick a genre, a mood and a tempo. MeTTa turns them into a small starting rule set (about 7 rules).
 2. **AI music composition.** Each idea has a 4-bar chord progression with real voicings, a song structure, and a 4-line lyric sketch. Press play to hear it in the browser.
-3. **Feedback system.** Like, dislike, keep for the song, tap a change chip ("Darker chords", "Softer", "More energy", "New lyric theme"), or type a request like "make it sadder and slower". The feedback bar stays pinned to the bottom of the Studio, and **Undo last** rolls the rules back one step.
+3. **Feedback system.** Like, dislike, keep for the song, tap a change chip ("Darker chords", "Softer", "More energy", "New lyric theme"), or type a request like "make it sadder and slower". Reactions and change buttons sit right under the chords, grouped by Mood, Speed, Feel, Chords and Song, and **Undo** rolls the rules back one step.
 4. **Adaptive learning agent.** Feedback changes the weights of MeTTa rules. New rules appear, unused ones are forgotten, and stances grow from `likes` to `loves`.
-5. **Visible learning history.** After every piece of feedback, a **What changed** panel in the Studio shows the idea before, the new idea after, and each rule change. The Engine tab keeps the full history and the MeTTa rule diff since setup. "Why this idea" says which feedback shaped each choice.
-6. **Split-sheet generator.** Song title, date, collaborators, roles, contribution notes and the shares the collaborators type in themselves. NoteFlow never assigns shares. **Check with MeTTa** verifies the total is 100% and that everyone has a name, role and share. The sheet stays a draft until every collaborator ticks "Agreed", and editing a share clears the agreements. Download as Markdown or print to PDF.
+5. **Visible learning history.** After every piece of feedback, a **What NoteFlow just learned** panel shows each change in plain words ("Now likes dark chord progressions"), plus the idea before and after. The **What it learned** tab keeps the full history, with the MeTTa rule diff under "Under the hood". **Why NoteFlow picked this** explains every choice and which reaction shaped it.
+6. **Split-sheet generator.** Song title, date, collaborators, roles, contribution notes and the shares the collaborators type in themselves. NoteFlow never assigns shares. **Check the split** uses MeTTa to verify the total is 100% and that everyone has a name, role and share. The sheet stays a draft until every collaborator ticks "Agreed", and editing a share clears the agreements. Download as Markdown or print to PDF.
 
 ## How MeTTa is used
 
@@ -74,7 +74,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open http://127.0.0.1:5000. Set your preferences, then rate a few ideas in the Studio and watch the Engine tab.
+Open http://127.0.0.1:5000. Follow the numbered tabs: **1 Your taste**, **2 Create**, **3 What it learned**, **4 Credits**.
 
 ## Deploy online
 

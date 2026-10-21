@@ -14,124 +14,113 @@
       <svg viewBox="0 0 24 24" class="logo"><path d="M2 12h3l2-6 4 12 3-9 2 5 2-2h4"/></svg>
       <div>
         <strong>NoteFlow</strong>
-        <span id="tab-name" class="eyebrow">Studio</span>
+        <span id="tab-name" class="eyebrow">Create</span>
       </div>
     </div>
     <div class="session">
-      <span class="pill live"><span class="dot"></span><span id="session-label">Not calibrated</span></span>
-      <label class="musician">Musician <input id="who" placeholder="Your name"></label>
+      <span class="pill live"><span class="dot"></span><span id="session-label">Not set up yet</span></span>
+      <label class="musician">Who's reacting? <input id="who" placeholder="Your name"></label>
     </div>
   </header>
 
-  <div class="transport">
-    <button id="play" class="icon-btn primary" title="Play" disabled>
-      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-    </button>
-    <button id="stop" class="icon-btn" title="Stop">
-      <svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
-    </button>
-    <span class="mono"><b id="bpm-readout">--</b> BPM</span>
-    <span class="spacer"></span>
-    <span class="mono muted">KEY</span>
-    <span id="key-readout" class="pill cyan mono">--</span>
-  </div>
-
   <nav class="tabs">
-    <button data-tab="studio" class="active"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4zM9 4v10M15 4v10"/></svg>Studio</button>
-    <button data-tab="preferences"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8M14 4v6M8 14v6"/></svg>Preferences</button>
-    <button data-tab="engine"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M8 12h2l1-3 2 6 1-3h2"/></svg>Engine<span id="engine-badge" class="badge-count" hidden></span></button>
-    <button data-tab="split"><svg viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6zM9 10h6M9 14h6M9 18h4"/></svg>Split sheet</button>
+    <button data-tab="preferences"><b>1</b>Your taste</button>
+    <button data-tab="studio" class="active"><b>2</b>Create</button>
+    <button data-tab="engine"><b>3</b>What it learned<span id="engine-badge" class="badge-count" hidden></span></button>
+    <button data-tab="split"><b>4</b>Credits</button>
   </nav>
 
   <main>
     <section id="studio" class="view active">
       <div id="onboarding" class="panel callout" hidden>
-        <h2>Calibrate your co-writer</h2>
-        <p class="muted">Pick a genre, mood and tempo first. NoteFlow turns them into its starting MeTTa rules.</p>
-        <button class="primary go-preferences">Set preferences</button>
+        <h2>Start by telling NoteFlow your taste</h2>
+        <p class="muted">Pick a genre, a mood and a tempo. NoteFlow writes ideas from there and learns from every reaction.</p>
+        <button class="primary go-preferences">Set my taste</button>
       </div>
 
       <div id="studio-body" hidden>
-        <div class="panel">
-          <div class="panel-head">
-            <span class="eyebrow cyan"><span class="dot"></span> AI co-writer active</span>
-            <span id="pick-badge" class="eyebrow"></span>
+        <div class="panel hero">
+          <div class="hero-top">
+            <button id="play" class="play-btn" title="Play" disabled>
+              <svg viewBox="0 0 24 24" class="icon-play"><path d="M8 5v14l11-7z"/></svg>
+              <svg viewBox="0 0 24 24" class="icon-stop"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+            </button>
+            <div class="hero-title">
+              <span id="pick-note" class="pick-note"></span>
+              <h2 id="idea-title"></h2>
+              <p id="idea-meta" class="muted"></p>
+            </div>
+            <button id="regenerate" class="soft">
+              <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg>New idea
+            </button>
           </div>
-          <div class="tiles">
-            <div><span>Key</span><b id="tile-key"></b></div>
-            <div><span>Tempo</span><b id="tile-tempo"></b></div>
-            <div><span>Time sig</span><b>4 / 4</b></div>
-            <div><span>Genre</span><b id="tile-genre"></b></div>
-            <div><span>Mood</span><b id="tile-mood"></b></div>
+
+          <div id="chords" class="chord-line"></div>
+
+          <div class="react">
+            <button data-verdict="like" class="verdict">
+              <svg viewBox="0 0 24 24"><path d="M7 11v9H4v-9zM7 11l4-7c1.5 0 2.5 1 2 3l-1 3h6c1 0 2 1 1.8 2.2l-1.4 6c-.2 1-1 1.8-2 1.8H7"/></svg>Like
+            </button>
+            <button data-verdict="dislike" class="verdict">
+              <svg viewBox="0 0 24 24"><path d="M17 13V4h3v9zM17 13l-4 7c-1.5 0-2.5-1-2-3l1-3H6c-1 0-2-1-1.8-2.2l1.4-6C5.8 4.8 6.6 4 7.6 4H17"/></svg>Not for me
+            </button>
+            <button data-verdict="keep" class="verdict primary">
+              <svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>Keep for the song
+            </button>
+            <button id="undo" class="ghost" title="Undo your last reaction" disabled>
+              <svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3"/></svg>Undo
+            </button>
+          </div>
+
+          <div class="change">
+            <h3>Want it different?</h3>
+            <div id="request-groups" class="groups"></div>
+            <form id="ask" class="ask">
+              <input id="ask-text" placeholder="Or just type it, e.g. &quot;make it sadder and slower&quot;">
+              <button class="icon-btn primary" title="Send">
+                <svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2-6z"/></svg>
+              </button>
+            </form>
           </div>
         </div>
 
         <div id="changed" class="panel changed" hidden>
           <div class="panel-head">
-            <h3>What changed</h3>
+            <h3>What NoteFlow just learned</h3>
             <span id="changed-label" class="muted small"></span>
           </div>
+          <ul id="changed-list" class="learned-list"></ul>
           <div class="ba-row">
             <div class="ba"><span>Before</span><b id="changed-before"></b></div>
             <div class="ba-arrow">→</div>
-            <div class="ba after"><span>After: new idea</span><b id="changed-after"></b></div>
+            <div class="ba after"><span>Now</span><b id="changed-after"></b></div>
           </div>
-          <div id="changed-deltas" class="deltas"></div>
         </div>
-
-        <div class="toolbar">
-          <div id="sections" class="sections"></div>
-          <button id="regenerate" class="soft">
-            <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg>Regenerate idea
-          </button>
-        </div>
-
-        <div id="chords" class="chords"></div>
 
         <div class="grid-2">
           <div class="panel">
-            <div class="panel-head"><h3>Lyric sketch</h3><span id="theme-tag" class="pill blue mono"></span></div>
-            <ol id="lyrics" class="lyrics"></ol>
+            <div class="panel-head"><h3>Why NoteFlow picked this</h3></div>
+            <ul id="reasons" class="reasons"></ul>
           </div>
           <div class="panel">
-            <div class="panel-head"><h3>Why this idea</h3><span id="score-tag" class="pill mono"></span></div>
-            <ul id="reasons" class="reasons"></ul>
+            <div class="panel-head"><h3>Song sketch</h3><span id="theme-tag" class="pill blue"></span></div>
+            <div id="sections" class="sections"></div>
+            <ol id="lyrics" class="lyrics"></ol>
           </div>
         </div>
 
-        <div class="panel teach">
-          <div class="panel-head">
-            <div>
-              <h3>Refine the idea &amp; teach the agent</h3>
-              <p class="muted small">Every rating or change request updates the agent's MeTTa rules.</p>
-            </div>
-            <div class="rate">
-              <button id="undo" class="soft small" title="Undo the last rating or request" disabled>Undo last</button>
-              <button data-verdict="like" class="icon-btn verdict" title="Like">
-                <svg viewBox="0 0 24 24"><path d="M7 11v9H4v-9zM7 11l4-7c1.5 0 2.5 1 2 3l-1 3h6c1 0 2 1 1.8 2.2l-1.4 6c-.2 1-1 1.8-2 1.8H7"/></svg>
-              </button>
-              <button data-verdict="dislike" class="icon-btn verdict" title="Dislike">
-                <svg viewBox="0 0 24 24"><path d="M17 13V4h3v9zM17 13l-4 7c-1.5 0-2.5-1-2-3l1-3H6c-1 0-2-1-1.8-2.2l1.4-6C5.8 4.8 6.6 4 7.6 4H17"/></svg>
-              </button>
-              <button data-verdict="keep" class="verdict primary">Keep for song</button>
-            </div>
-          </div>
-          <div id="request-chips" class="chips"></div>
-          <form id="ask" class="ask">
-            <input id="ask-text" placeholder="Ask for a change, e.g. &quot;make it darker and slower&quot;">
-            <button class="icon-btn primary" title="Send">
-              <svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2-6z"/></svg>
-            </button>
-          </form>
-        </div>
+        <details class="panel details">
+          <summary>Notes in each chord</summary>
+          <div id="voicings" class="voicings"></div>
+        </details>
       </div>
     </section>
 
     <section id="preferences" class="view">
       <div class="panel">
-        <span class="eyebrow purple">Preference setup</span>
-        <h2>Musical preferences &amp; engine calibration</h2>
-        <p class="muted">Choose what you like. The agent turns it into a small starting rule set, then learns the rest from your feedback.</p>
+        <span class="eyebrow purple">Step 1</span>
+        <h2>What's your sound?</h2>
+        <p class="muted">Pick what you like. NoteFlow starts from this and learns the rest from your reactions.</p>
         <label class="field">Your name <input id="pref-name" placeholder="e.g. Gian"></label>
       </div>
       <div class="panel">
@@ -143,60 +132,59 @@
         <div id="moods" class="chips choose"></div>
       </div>
       <div class="panel">
-        <div class="panel-head"><h3>Tempo</h3><span id="tempo-band" class="pill cyan mono"></span></div>
-        <div class="tempo"><b id="tempo-value">90</b><span class="mono">BPM</span></div>
+        <div class="panel-head"><h3>Tempo</h3><span id="tempo-band" class="pill cyan"></span></div>
+        <div class="tempo"><b id="tempo-value">90</b><span>BPM</span></div>
         <input id="tempo" type="range" min="60" max="180" value="90">
-        <div class="range-labels mono muted"><span>60 BPM</span><span>180 BPM</span></div>
+        <div class="range-labels muted small"><span>Slow · 60</span><span>Fast · 180</span></div>
       </div>
-      <button id="calibrate" class="primary wide">Save &amp; calibrate agent</button>
+      <button id="calibrate" class="primary wide">Save and start creating</button>
       <p id="calibrate-note" class="muted small center"></p>
-      <div class="panel">
-        <div class="panel-head"><h3>Starting rule set (MeTTa)</h3><span class="pill mono">metta/hints.metta</span></div>
+      <details class="panel details">
+        <summary>Under the hood: your starting MeTTa rules</summary>
         <pre id="seed" class="code"></pre>
-      </div>
+      </details>
     </section>
 
     <section id="engine" class="view">
       <div class="panel">
-        <div class="panel-head">
-          <div>
-            <h2>The learning engine</h2>
-            <span class="eyebrow cyan">Adaptive MeTTa co-writer</span>
-          </div>
-          <span class="pill cyan mono">Live adapt</span>
-        </div>
+        <span class="eyebrow cyan">Step 3</span>
+        <h2>What NoteFlow has learned</h2>
+        <p class="muted">Every reaction changes NoteFlow's taste rules. Here is each change, step by step.</p>
         <div class="stats">
-          <div><span>Rules</span><b id="stat-rules"></b></div>
-          <div><span>Version</span><b id="stat-version"></b></div>
-          <div><span>Feedback</span><b id="stat-feedback"></b></div>
-          <div><span>Kept ideas</span><b id="stat-kept"></b></div>
+          <div><span>Taste rules</span><b id="stat-rules"></b></div>
+          <div><span>Updates</span><b id="stat-version"></b></div>
+          <div><span>Reactions</span><b id="stat-feedback"></b></div>
+          <div><span>Ideas kept</span><b id="stat-kept"></b></div>
         </div>
-        <span class="eyebrow">Rule growth</span>
+        <span class="eyebrow">Taste rules over time</span>
         <div id="growth" class="growth"></div>
       </div>
 
-      <div class="panel-head"><h3>Adaptation diffs</h3><button id="reset" class="soft small">Reset to my preferences</button></div>
+      <div class="panel-head"><h3>Step by step</h3><button id="reset" class="ghost small">Start over from my taste</button></div>
       <div id="history" class="history"></div>
 
-      <div class="panel">
-        <div class="panel-head">
-          <h3>MeTTa rule set</h3>
-          <div class="seg">
-            <button data-rules="since_setup" class="active">Since setup</button>
-            <button data-rules="rules_text">Current rules</button>
-          </div>
+      <details class="panel details">
+        <summary>Under the hood: MeTTa rules</summary>
+        <div class="seg">
+          <button data-rules="since_setup" class="active">Changes since start</button>
+          <button data-rules="rules_text">All rules</button>
         </div>
         <pre id="rules" class="code"></pre>
-      </div>
+      </details>
     </section>
 
     <section id="split" class="view">
       <div class="panel">
         <div class="panel-head">
-          <span class="eyebrow purple">Split-sheet generator</span>
-          <span id="sheet-status" class="pill mono">Draft</span>
+          <span class="eyebrow purple">Step 4 · Split sheet</span>
+          <span id="sheet-status" class="pill">Draft</span>
         </div>
-        <h2>Split sheet &amp; royalty draft</h2>
+        <h2>Song credits</h2>
+        <ol class="steps muted">
+          <li>Add everyone who worked on the song.</li>
+          <li>Tick what each person did and type their share.</li>
+          <li>Check the split, then everyone ticks "Agreed".</li>
+        </ol>
         <div class="grid-2 tight">
           <label class="field">Song title <input id="song-title" placeholder="Untitled"></label>
           <label class="field">Date <input id="song-date" type="date"></label>
@@ -204,30 +192,30 @@
       </div>
 
       <div class="panel">
-        <div class="panel-head"><span class="eyebrow">Royalty allocation</span><span id="alloc-note" class="mono small"></span></div>
+        <div class="panel-head"><span class="eyebrow">Shares</span><span id="alloc-note" class="small"></span></div>
         <b id="alloc-total" class="alloc-total"></b>
         <div id="alloc-bar" class="alloc-bar"></div>
         <div id="alloc-legend" class="legend"></div>
       </div>
 
-      <div class="panel-head"><h3>Collaborators</h3><span class="muted small">Enter each person's share. NoteFlow never assigns shares for you.</span></div>
+      <div class="panel-head"><h3>Collaborators</h3><span class="muted small">NoteFlow never decides anyone's share.</span></div>
       <div id="people" class="people"></div>
       <div class="row">
         <button id="add-person" class="soft">Add collaborator</button>
-        <button id="check" class="primary">Check with MeTTa</button>
+        <button id="check" class="primary">Check the split</button>
       </div>
       <ul id="check-result" class="check-result" hidden></ul>
 
       <div class="panel ai-row">
         <div>
-          <b>NoteFlow agent (AI)</b>
-          <p class="muted small">Suggested chords, song structures and lyric sketches. AI use is disclosed. No royalty share is assigned to the AI.</p>
+          <b>NoteFlow (AI)</b>
+          <p class="muted small">Suggested chords, song structures and lyric sketches. AI use is disclosed. The AI gets no share.</p>
         </div>
-        <span class="pill cyan mono">0% · disclosed</span>
+        <span class="pill cyan">0% · disclosed</span>
       </div>
 
       <div class="panel">
-        <h3>Work details: ideas kept in this session</h3>
+        <h3>Ideas kept for this song</h3>
         <div id="song-ideas" class="song-ideas"></div>
       </div>
 
@@ -235,11 +223,11 @@
         <button id="download" class="primary">Download split sheet (.md)</button>
         <button id="print" class="soft">Print / save as PDF</button>
       </div>
-      <p class="muted small">Draft only, not legal advice. Every collaborator should review and sign before it is final.</p>
+      <p class="muted small">Not legal advice. The split is final only when every collaborator signs.</p>
     </section>
   </main>
 
-  <div id="busy" class="busy-pill"><i></i><span>Composing…</span></div>
+  <div id="busy" class="busy-pill"><i></i><span>Writing a new idea…</span></div>
   <div id="toast" class="toast" hidden></div>
   <div id="print-area" class="print-area"></div>
   <script src="app.js"></script>
