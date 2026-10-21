@@ -20,6 +20,11 @@ def test_each_visitor_gets_their_own_agent(client):
     assert len(server.sessions) == 2
 
 
+def test_first_idea_matches_chosen_tempo(client):
+    for _ in range(5):
+        assert client.post("/api/setup", json=SETUP).json["suggestion"]["idea"]["bpm"] == 80
+
+
 def test_feedback_learns_and_returns_next_idea(client):
     idea = client.post("/api/setup", json=SETUP).json["suggestion"]["idea"]
     result = client.post("/api/request", json={"id": idea["id"], "changes": ["darker"]}).json

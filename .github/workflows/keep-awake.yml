@@ -1,0 +1,12 @@
+name: Keep live demo awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsS --retry 3 --max-time 90 -o /dev/null https://noteflow-j8af.onrender.com/

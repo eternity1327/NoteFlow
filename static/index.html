@@ -11,7 +11,7 @@
 <body>
   <header class="topbar">
     <div class="brand">
-      <svg viewBox="0 0 24 24" class="logo"><path d="M2 12h3l2-6 4 12 3-9 2 5 2-2h4"/></svg>
+      <svg aria-hidden="true" viewBox="0 0 24 24" class="logo"><path d="M2 12h3l2-6 4 12 3-9 2 5 2-2h4"/></svg>
       <div>
         <strong>NoteFlow</strong>
         <span id="tab-name" class="eyebrow">Create</span>
@@ -23,11 +23,11 @@
     </div>
   </header>
 
-  <nav class="tabs">
-    <button data-tab="preferences"><b>1</b>Your taste</button>
-    <button data-tab="studio" class="active"><b>2</b>Create</button>
-    <button data-tab="engine"><b>3</b>What it learned<span id="engine-badge" class="badge-count" hidden></span></button>
-    <button data-tab="split"><b>4</b>Credits</button>
+  <nav class="tabs" role="tablist" aria-label="Steps">
+    <button role="tab" aria-selected="false" data-tab="preferences"><b>1</b>Your taste</button>
+    <button role="tab" aria-selected="true" data-tab="studio" class="active"><b>2</b>Create</button>
+    <button role="tab" aria-selected="false" data-tab="engine"><b>3</b>What it learned<span id="engine-badge" class="badge-count" hidden></span></button>
+    <button role="tab" aria-selected="false" data-tab="split"><b>4</b>Credits</button>
   </nav>
 
   <main>
@@ -35,56 +35,61 @@
       <div id="onboarding" class="panel callout" hidden>
         <h2>Start by telling NoteFlow your taste</h2>
         <p class="muted">Pick a genre, a mood and a tempo. NoteFlow writes ideas from there and learns from every reaction.</p>
-        <button class="primary go-preferences">Set my taste</button>
+        <div class="row center-row">
+          <button class="primary go-preferences">Set my taste</button>
+          <button class="soft demo">Try a quick demo</button>
+        </div>
       </div>
 
       <div id="studio-body" hidden>
         <div class="panel hero">
           <div class="hero-top">
-            <button id="play" class="play-btn" title="Play" disabled>
-              <svg viewBox="0 0 24 24" class="icon-play"><path d="M8 5v14l11-7z"/></svg>
-              <svg viewBox="0 0 24 24" class="icon-stop"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+            <button id="play" class="play-btn" title="Play (Space)" aria-label="Play this idea" aria-keyshortcuts="Space" disabled>
+              <svg aria-hidden="true" viewBox="0 0 24 24" class="icon-play"><path d="M8 5v14l11-7z"/></svg>
+              <svg aria-hidden="true" viewBox="0 0 24 24" class="icon-stop"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
             </button>
             <div class="hero-title">
               <span id="pick-note" class="pick-note"></span>
               <h2 id="idea-title"></h2>
               <p id="idea-meta" class="muted"></p>
             </div>
-            <button id="regenerate" class="soft">
-              <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg>New idea
+            <button id="regenerate" class="soft" aria-keyshortcuts="N">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg>New idea
             </button>
           </div>
 
           <div id="chords" class="chord-line"></div>
 
           <div class="react">
-            <button data-verdict="like" class="verdict">
-              <svg viewBox="0 0 24 24"><path d="M7 11v9H4v-9zM7 11l4-7c1.5 0 2.5 1 2 3l-1 3h6c1 0 2 1 1.8 2.2l-1.4 6c-.2 1-1 1.8-2 1.8H7"/></svg>Like
+            <button data-verdict="like" class="verdict" aria-keyshortcuts="L">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 11v9H4v-9zM7 11l4-7c1.5 0 2.5 1 2 3l-1 3h6c1 0 2 1 1.8 2.2l-1.4 6c-.2 1-1 1.8-2 1.8H7"/></svg>Like
             </button>
-            <button data-verdict="dislike" class="verdict">
-              <svg viewBox="0 0 24 24"><path d="M17 13V4h3v9zM17 13l-4 7c-1.5 0-2.5-1-2-3l1-3H6c-1 0-2-1-1.8-2.2l1.4-6C5.8 4.8 6.6 4 7.6 4H17"/></svg>Not for me
+            <button data-verdict="dislike" class="verdict" aria-keyshortcuts="D">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M17 13V4h3v9zM17 13l-4 7c-1.5 0-2.5-1-2-3l1-3H6c-1 0-2-1-1.8-2.2l1.4-6C5.8 4.8 6.6 4 7.6 4H17"/></svg>Not for me
             </button>
-            <button data-verdict="keep" class="verdict primary">
-              <svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>Keep for the song
+            <button data-verdict="keep" class="verdict primary" aria-keyshortcuts="K">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>Keep for the song
             </button>
-            <button id="undo" class="ghost" title="Undo your last reaction" disabled>
-              <svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3"/></svg>Undo
+            <button id="undo" class="ghost" title="Undo your last reaction (U)" aria-keyshortcuts="U" disabled>
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3"/></svg>Undo
             </button>
           </div>
+
+          <p class="shortcuts muted small">Keyboard: <kbd>Space</kbd> play · <kbd>L</kbd> like · <kbd>D</kbd> not for me · <kbd>K</kbd> keep · <kbd>U</kbd> undo · <kbd>N</kbd> new idea</p>
 
           <div class="change">
             <h3>Want it different?</h3>
             <div id="request-groups" class="groups"></div>
             <form id="ask" class="ask">
-              <input id="ask-text" placeholder="Or just type it, e.g. &quot;make it sadder and slower&quot;">
-              <button class="icon-btn primary" title="Send">
-                <svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2-6z"/></svg>
+              <input id="ask-text" aria-label="Describe a change" placeholder="Or just type it, e.g. &quot;make it sadder and slower&quot;">
+              <button class="icon-btn primary" title="Send" aria-label="Send request">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2-6z"/></svg>
               </button>
             </form>
           </div>
         </div>
 
-        <div id="changed" class="panel changed" hidden>
+        <div id="changed" class="panel changed" aria-live="polite" hidden>
           <div class="panel-head">
             <h3>What NoteFlow just learned</h3>
             <span id="changed-label" class="muted small"></span>
@@ -121,6 +126,7 @@
         <span class="eyebrow purple">Step 1</span>
         <h2>What's your sound?</h2>
         <p class="muted">Pick what you like. NoteFlow starts from this and learns the rest from your reactions.</p>
+        <p class="small">In a hurry? <button class="link demo">Try a quick demo</button> with a ready-made Lo-fi, melancholic taste.</p>
         <label class="field">Your name <input id="pref-name" placeholder="e.g. Gian"></label>
       </div>
       <div class="panel">
@@ -134,7 +140,7 @@
       <div class="panel">
         <div class="panel-head"><h3>Tempo</h3><span id="tempo-band" class="pill cyan"></span></div>
         <div class="tempo"><b id="tempo-value">90</b><span>BPM</span></div>
-        <input id="tempo" type="range" min="60" max="180" value="90">
+        <input id="tempo" type="range" min="60" max="180" value="90" aria-label="Tempo in BPM">
         <div class="range-labels muted small"><span>Slow · 60</span><span>Fast · 180</span></div>
       </div>
       <button id="calibrate" class="primary wide">Save and start creating</button>
@@ -227,8 +233,8 @@
     </section>
   </main>
 
-  <div id="busy" class="busy-pill"><i></i><span>Writing a new idea…</span></div>
-  <div id="toast" class="toast" hidden></div>
+  <div id="busy" class="busy-pill" role="status" aria-live="polite"><i></i><span>Writing a new idea…</span></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   <div id="print-area" class="print-area"></div>
   <script src="app.js"></script>
 </body>

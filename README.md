@@ -22,6 +22,14 @@ Musicians often struggle to develop ideas in their own style, and co-writers rar
 5. **Visible learning history.** After every piece of feedback, a **What NoteFlow just learned** panel shows each change in plain words ("Now likes dark chord progressions"), plus the idea before and after. The **What it learned** tab keeps the full history, with the MeTTa rule diff under "Under the hood". **Why NoteFlow picked this** explains every choice and which reaction shaped it.
 6. **Split-sheet generator.** Song title, date, collaborators, roles, contribution notes and the shares the collaborators type in themselves. NoteFlow never assigns shares. **Check the split** uses MeTTa to verify the total is 100% and that everyone has a name, role and share. The sheet stays a draft until every collaborator ticks "Agreed", and editing a share clears the agreements. Download as Markdown or print to PDF.
 
+### Easy to use
+
+- **Try a quick demo** skips setup with a ready-made Lo-fi, melancholic taste and starts playing right away.
+- The four most common changes (Darker, Brighter, Faster, Slower) are always visible. The rest are under **More options**.
+- Keyboard shortcuts: <kbd>Space</kbd> play/stop, <kbd>L</kbd> like, <kbd>D</kbd> not for me, <kbd>K</kbd> keep, <kbd>U</kbd> undo, <kbd>N</kbd> new idea.
+- Accessibility: labelled buttons and fields, spoken updates for screen readers, visible keyboard focus, 44px tap targets on phones, and reduced motion when the system asks for it.
+- A GitHub Action (`.github/workflows/keep-awake.yml`) visits the live demo every 10 minutes so it doesn't fall asleep on the free plan.
+
 ## How MeTTa is used
 
 | File | Role |

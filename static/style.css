@@ -225,6 +225,17 @@ main { max-width: 1100px; width: calc(100% - 32px); margin: 0 auto; padding: 14p
 .voicing i { height: 5px; border-radius: 3px; background: var(--blue); }
 .voicing div:nth-child(2) i { background: var(--cyan); }
 
+.center-row { justify-content: center; margin-top: 8px; }
+button.link { padding: 0; border: 0; background: none; color: var(--cyan); text-decoration: underline; font-size: inherit; }
+.shortcuts { margin: -6px 0 0; }
+kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--line); background: var(--inset); color: var(--text); }
+.group.main .chip { padding: 9px 16px; font-size: 14px; }
+.more-changes { margin-top: 4px; }
+.more-changes summary { cursor: pointer; color: var(--blue); font-size: 14px; width: max-content; padding: 4px 0; }
+.more-changes[open] summary { margin-bottom: 8px; }
+.more-changes .group { margin-bottom: 8px; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+input:focus-visible { outline: none; }
 .details summary { cursor: pointer; font-weight: 600; color: var(--muted); }
 .details[open] summary { color: var(--text); margin-bottom: 4px; }
 .details .seg { margin: 12px 0; width: max-content; }
@@ -392,6 +403,19 @@ input[type="range"] { width: 100%; padding: 0; accent-color: var(--cyan); backgr
   .group > span { width: 100%; }
   .ba-row { grid-template-columns: 1fr; }
   .ba-arrow { justify-self: center; transform: rotate(90deg); }
+}
+
+@media (hover: none) {
+  .shortcuts { display: none; }
+}
+
+@media (max-width: 640px) {
+  button, .chip { min-height: 44px; }
+  input[type="checkbox"] { width: 22px; height: 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
 
 @media print {

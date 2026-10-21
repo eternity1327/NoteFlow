@@ -117,6 +117,10 @@ def who(data):
     return str(data.get("who") or "").strip()[:40] or g.s.agent.profile["name"]
 
 
+def first_idea():
+    return compose(explore=False, fixed={"tempo": composer.tempo_band(g.s.agent.profile["bpm"])})
+
+
 def needs_setup():
     return jsonify({"error": "Set your preferences first"}), 400
 
@@ -138,7 +142,7 @@ def setup():
         g.s.agent.setup(str(data.get("name", ""))[:40], data.get("genre"), data.get("mood"), int(data.get("bpm", 0)))
     except (TypeError, ValueError) as error:
         return jsonify({"error": str(error)}), 400
-    return jsonify({"state": current_state(), "suggestion": compose(explore=False)})
+    return jsonify({"state": current_state(), "suggestion": first_idea()})
 
 
 @app.post("/api/suggest")
@@ -189,7 +193,7 @@ def reset():
     if not g.s.agent.profile:
         return needs_setup()
     g.s.agent.reset()
-    return jsonify({"state": current_state(), "suggestion": compose(explore=False)})
+    return jsonify({"state": current_state(), "suggestion": first_idea()})
 
 
 @app.post("/api/undo")

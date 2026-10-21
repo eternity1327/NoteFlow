@@ -46,6 +46,10 @@ const choice = { genre: null, mood: null, bpm: 90 };
 const people = [];
 const synced = new Set();
 const audio = { ctx: null, nodes: [], timers: [] };
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const SHORTCUTS = { l: '[data-verdict="like"]', d: '[data-verdict="dislike"]', k: '[data-verdict="keep"]', u: "#undo", n: "#regenerate" };
+const MAIN_CHANGES = ["darker", "brighter", "faster", "slower"];
+const DEMO = { genre: "lofi", mood: "melancholic", bpm: 82 };
 
 const esc = (text) => String(text ?? "").replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 const signed = (n) => (n > 0 ? `+${n}` : `${n}`);
@@ -86,7 +90,10 @@ function toast(message, isError = false) {
 }
 
 function showTab(name) {
-  $$(".tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+  $$(".tabs button").forEach((b) => {
+    b.classList.toggle("active", b.dataset.tab === name);
+    b.setAttribute("aria-selected", String(b.dataset.tab === name));
+  });
   $$(".view").forEach((v) => v.classList.toggle("active", v.id === name));
   $("#tab-name").textContent = TAB_NAMES[name];
   if (name === "engine" && state?.ready) {
@@ -96,13 +103,24 @@ function showTab(name) {
   window.scrollTo({ top: 0 });
 }
 
+function unlockAudio() {
+  audio.ctx = audio.ctx || new AudioContext();
+  if (audio.ctx.state === "suspended") audio.ctx.resume();
+}
+
+function setPlaying(on) {
+  $("#play").classList.toggle("playing", on);
+  $("#play").setAttribute("aria-label", on ? "Stop playback" : "Play this idea");
+  $("#play").title = on ? "Stop (Space)" : "Play (Space)";
+}
+
 function stopAudio() {
   audio.nodes.forEach((n) => { try { n.stop(); } catch (e) {} });
   audio.timers.forEach(clearTimeout);
   audio.nodes = [];
   audio.timers = [];
   $$("#chords .chord").forEach((c) => c.classList.remove("on"));
-  $("#play").classList.remove("playing");
+  setPlaying(false);
 }
 
 function tone(freq, start, length, type, level) {
@@ -137,11 +155,11 @@ function strum(rhythm, midi, start, beat) {
 function play() {
   if (!suggestion) return;
   stopAudio();
-  audio.ctx = audio.ctx || new AudioContext();
+  unlockAudio();
   const idea = suggestion.idea;
   const beat = 60 / idea.bpm;
   const cards = $$("#chords .chord");
-  $("#play").classList.add("playing");
+  setPlaying(true);
   let time = audio.ctx.currentTime + 0.05;
   idea.chords.forEach((chord, i) => {
     strum(idea.features.rhythm, chord.midi, time, beat);
@@ -204,16 +222,25 @@ function reasonRow(r) {
   return `<li class="${mood}"><span>${esc(REASON[r.stance])} <b>${esc(phrase(r.kind, r.value))}</b></span><span class="w">${signed(r.weight)}</span><small>${esc(source)}</small></li>`;
 }
 
+function changeButtons(ids, labels) {
+  return ids.filter((id) => labels[id]).map((id) => `<button class="chip" data-change="${id}">${esc(labels[id])}</button>`).join("");
+}
+
 function renderRequests() {
+  const box = $("#request-groups");
+  if (box.dataset.ready) return;
   const labels = state.options.requests;
-  const used = new Set(GROUPS.flatMap(([, ids]) => ids));
-  const groups = [...GROUPS, ["More", Object.keys(labels).filter((id) => !used.has(id))]];
-  $("#request-groups").innerHTML = groups
-    .map(([name, ids]) => ids.filter((id) => labels[id]))
-    .map((ids, i) => (ids.length
-      ? `<div class="group"><span>${groups[i][0]}</span>${ids.map((id) => `<button class="chip" data-change="${id}">${esc(labels[id])}</button>`).join("")}</div>`
-      : ""))
-    .join("");
+  const used = new Set([...MAIN_CHANGES, ...GROUPS.flatMap(([, ids]) => ids)]);
+  const groups = [...GROUPS, ["More", Object.keys(labels).filter((id) => !used.has(id))]]
+    .map(([name, ids]) => [name, ids.filter((id) => !MAIN_CHANGES.includes(id))])
+    .filter(([, ids]) => ids.some((id) => labels[id]));
+  box.innerHTML = `
+    <div class="group main">${changeButtons(MAIN_CHANGES, labels)}</div>
+    <details class="more-changes">
+      <summary>More options</summary>
+      ${groups.map(([name, ids]) => `<div class="group"><span>${name}</span>${changeButtons(ids, labels)}</div>`).join("")}
+    </details>`;
+  box.dataset.ready = "1";
 }
 
 function renderPreferences() {
@@ -224,10 +251,10 @@ function renderPreferences() {
     $("#pref-name").value = profile.name;
   }
   $("#genres").innerHTML = Object.entries(options.genres)
-    .map(([id, label]) => `<button class="chip ${choice.genre === id ? "selected" : ""}" data-genre="${id}">${esc(label)}</button>`)
+    .map(([id, label]) => `<button class="chip ${choice.genre === id ? "selected" : ""}" aria-pressed="${choice.genre === id}" data-genre="${id}">${esc(label)}</button>`)
     .join("");
   $("#moods").innerHTML = Object.entries(options.moods)
-    .map(([id, label]) => `<button class="chip ${choice.mood === id ? "selected" : ""}" data-mood="${id}">${esc(label)}</button>`)
+    .map(([id, label]) => `<button class="chip ${choice.mood === id ? "selected" : ""}" aria-pressed="${choice.mood === id}" data-mood="${id}">${esc(label)}</button>`)
     .join("");
   $("#tempo").value = choice.bpm;
   $("#tempo-value").textContent = choice.bpm;
@@ -319,11 +346,11 @@ function personCard(p, i) {
     .join("");
   return `
     <div class="person">
-      <input data-i="${i}" data-field="name" value="${esc(p.name)}" placeholder="Collaborator name">
+      <input data-i="${i}" data-field="name" value="${esc(p.name)}" placeholder="Collaborator name" aria-label="Collaborator ${i + 1} name">
       <div class="roles">${roles}</div>
-      <div class="share"><input type="number" min="1" max="100" step="1" placeholder="0" data-i="${i}" data-field="share" value="${p.share}">%</div>
+      <div class="share"><input type="number" min="1" max="100" step="1" placeholder="0" data-i="${i}" data-field="share" value="${p.share}" aria-label="${esc(p.name || `Collaborator ${i + 1}`)} share in percent">%</div>
       <button class="small" data-remove="${i}">Remove</button>
-      <input class="notes" data-i="${i}" data-field="notes" value="${esc(p.notes)}" placeholder="Contribution notes, e.g. wrote the chorus lyrics">
+      <input class="notes" data-i="${i}" data-field="notes" value="${esc(p.notes)}" placeholder="Contribution notes, e.g. wrote the chorus lyrics" aria-label="${esc(p.name || `Collaborator ${i + 1}`)} contribution notes">
       <label class="agree"><input type="checkbox" data-i="${i}" data-field="agreed" ${p.agreed ? "checked" : ""}><span class="status ${p.agreed ? "agreed" : "proposed"}">${p.agreed ? "Agreed" : "Proposed"}</span></label>
     </div>`;
 }
@@ -395,7 +422,7 @@ function learned(result) {
   freshVersion = result.entry.version;
   renderAll();
   showChanged(result.entry);
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   const n = result.entry.changes.length;
   toast(`Got it. NoteFlow updated ${n} taste rule${n === 1 ? "" : "s"} and wrote a new idea.`);
   play();
@@ -415,6 +442,7 @@ let busy = false;
 
 async function guarded(task, label = "Writing a new idea…") {
   if (busy) return;
+  unlockAudio();
   busy = true;
   $("#busy span").textContent = label;
   document.body.classList.add("busy");
@@ -478,11 +506,10 @@ $("#tempo").addEventListener("input", (e) => {
   $("#tempo-band").textContent = band(choice.bpm);
 });
 
-$("#calibrate").addEventListener("click", () => guarded(async () => {
-  if (!choice.genre || !choice.mood) throw new Error("Pick a genre and a mood first.");
-  if (state.ready && state.version > 0 && !confirm("This starts over and forgets what NoteFlow has learned. Continue?")) return;
+async function startSetup(taste) {
+  Object.assign(choice, taste);
   const name = $("#pref-name").value.trim() || "You";
-  const result = await api("/api/setup", { name, genre: choice.genre, mood: choice.mood, bpm: choice.bpm });
+  const result = await api("/api/setup", { name, ...taste });
   state = result.state;
   suggestion = result.suggestion;
   seenVersion = 0;
@@ -490,8 +517,37 @@ $("#calibrate").addEventListener("click", () => guarded(async () => {
   $("#changed").hidden = true;
   renderAll();
   showTab("studio");
-  toast(`All set. NoteFlow starts with ${state.seed_count} taste rules from your choices. Press play!`);
+  play();
+  toast(`All set. NoteFlow starts with ${state.seed_count} taste rules from your choices. React to what you hear!`);
+}
+
+$("#calibrate").addEventListener("click", () => guarded(async () => {
+  if (!choice.genre || !choice.mood) throw new Error("Pick a genre and a mood first, or try the quick demo.");
+  if (state.ready && state.version > 0 && !confirm("This starts over and forgets what NoteFlow has learned. Continue?")) return;
+  await startSetup({ genre: choice.genre, mood: choice.mood, bpm: choice.bpm });
 }, "Setting up your taste…"));
+
+$$(".demo").forEach((button) => button.addEventListener("click", () => guarded(async () => {
+  if (state.ready && state.version > 0 && !confirm("The demo starts over and forgets what NoteFlow has learned. Continue?")) return;
+  await startSetup(DEMO);
+}, "Setting up the demo…")));
+
+document.addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.target.closest("input, textarea, select, [contenteditable]")) return;
+  if (!$("#studio").classList.contains("active") || $("#studio-body").hidden) return;
+  const key = e.key.toLowerCase();
+  if (key === " ") {
+    if (e.target.closest("button, a, summary")) return;
+    e.preventDefault();
+    $("#play").click();
+    return;
+  }
+  const button = SHORTCUTS[key] && $(SHORTCUTS[key]);
+  if (button && !button.disabled) {
+    e.preventDefault();
+    button.click();
+  }
+});
 
 $("#reset").addEventListener("click", () => guarded(async () => {
   if (!confirm("Forget everything NoteFlow learned and start again from your taste?")) return;
