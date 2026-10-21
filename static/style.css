@@ -179,9 +179,6 @@ main { max-width: 1100px; width: calc(100% - 32px); margin: 0 auto; padding: 14p
 .stats span { display: block; font-family: var(--mono); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
 .stats b { display: block; margin-top: 4px; font-size: 22px; color: var(--cyan); }
 
-.sections { display: flex; flex-wrap: wrap; gap: 6px; }
-.sections span { font-family: var(--mono); font-size: 12px; text-transform: uppercase; padding: 5px 9px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); }
-.sections span.hook { background: var(--primary); border-color: var(--primary); }
 
 .hero { border-color: rgba(108, 59, 255, 0.55); padding: 22px; display: flex; flex-direction: column; gap: 18px; }
 .hero-top { display: flex; align-items: center; gap: 18px; }
@@ -198,9 +195,8 @@ main { max-width: 1100px; width: calc(100% - 32px); margin: 0 auto; padding: 14p
 .chord-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .chord { display: flex; flex-direction: column; gap: 2px; padding: 12px 18px; border-radius: 14px; background: var(--inset); border: 1px solid var(--line); min-width: 110px; transition: border-color .15s, background .15s; }
 .chord b { font-size: 28px; }
-.chord small { color: var(--muted); font-size: 12px; }
+.chord small { color: var(--muted); font-size: 12px; order: -1; }
 .chord.on { border-color: var(--cyan); background: rgba(72, 240, 229, 0.08); }
-.chord-arrow { color: var(--muted); }
 
 .react { display: flex; flex-wrap: wrap; gap: 10px; }
 .react button { padding: 11px 18px; font-size: 15px; }
@@ -218,16 +214,9 @@ main { max-width: 1100px; width: calc(100% - 32px); margin: 0 auto; padding: 14p
 .learned.up span { color: var(--cyan); }
 .learned.down span { color: var(--danger); }
 
-.voicings { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
-.voicing-card { display: flex; flex-direction: column; gap: 8px; }
-.voicing { background: var(--inset); border-radius: 8px; padding: 8px; display: flex; flex-direction: column-reverse; gap: 4px; }
-.voicing div { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
-.voicing i { height: 5px; border-radius: 3px; background: var(--blue); }
-.voicing div:nth-child(2) i { background: var(--cyan); }
 
 .center-row { justify-content: center; margin-top: 8px; }
 button.link { padding: 0; border: 0; background: none; color: var(--cyan); text-decoration: underline; font-size: inherit; }
-.shortcuts { margin: -6px 0 0; }
 kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--line); background: var(--inset); color: var(--text); }
 .group.main .chip { padding: 9px 16px; font-size: 14px; }
 .more-changes { margin-top: 4px; }
@@ -236,6 +225,10 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius
 .more-changes .group { margin-bottom: 8px; }
 :focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 input:focus-visible { outline: none; }
+.more-reasons summary { cursor: pointer; color: var(--blue); font-size: 14px; margin-top: 8px; width: max-content; }
+.song-form { margin-top: 12px; }
+.changed .link { margin-top: 2px; }
+.reasons li { grid-template-columns: 1fr; }
 .details summary { cursor: pointer; font-weight: 600; color: var(--muted); }
 .details[open] summary { color: var(--text); margin-bottom: 4px; }
 .details .seg { margin: 12px 0; width: max-content; }
@@ -396,18 +389,16 @@ input[type="range"] { width: 100%; padding: 0; accent-color: var(--cyan); backgr
   #regenerate { flex-basis: 100%; }
   .play-btn { width: 56px; height: 56px; }
   .hero-title h2 { font-size: 22px; }
+  .chord-line { display: grid; grid-template-columns: 1fr 1fr; }
   .chord { min-width: 0; padding: 10px 12px; }
   .chord b { font-size: 22px; }
-  .chord-arrow { display: none; }
-  .voicings { grid-template-columns: 1fr 1fr; }
-  .group > span { width: 100%; }
+      .group > span { width: 100%; }
   .ba-row { grid-template-columns: 1fr; }
   .ba-arrow { justify-self: center; transform: rotate(90deg); }
 }
 
 @media (hover: none) {
-  .shortcuts { display: none; }
-}
+  }
 
 @media (max-width: 640px) {
   button, .chip { min-height: 44px; }

@@ -19,7 +19,7 @@
     </div>
     <div class="session">
       <span class="pill live"><span class="dot"></span><span id="session-label">Not set up yet</span></span>
-      <label class="musician">Who's reacting? <input id="who" placeholder="Your name"></label>
+      <label class="musician">Name <input id="who" placeholder="Your name"></label>
     </div>
   </header>
 
@@ -75,8 +75,6 @@
             </button>
           </div>
 
-          <p class="shortcuts muted small">Keyboard: <kbd>Space</kbd> play · <kbd>L</kbd> like · <kbd>D</kbd> not for me · <kbd>K</kbd> keep · <kbd>U</kbd> undo · <kbd>N</kbd> new idea</p>
-
           <div class="change">
             <h3>Want it different?</h3>
             <div id="request-groups" class="groups"></div>
@@ -95,29 +93,24 @@
             <span id="changed-label" class="muted small"></span>
           </div>
           <ul id="changed-list" class="learned-list"></ul>
-          <div class="ba-row">
-            <div class="ba"><span>Before</span><b id="changed-before"></b></div>
-            <div class="ba-arrow">→</div>
-            <div class="ba after"><span>Now</span><b id="changed-after"></b></div>
-          </div>
+          <button class="link go-learned">See everything it learned</button>
         </div>
 
         <div class="grid-2">
           <div class="panel">
             <div class="panel-head"><h3>Why NoteFlow picked this</h3></div>
             <ul id="reasons" class="reasons"></ul>
+            <details class="more-reasons">
+              <summary>Show all reasons</summary>
+              <ul id="reasons-all" class="reasons"></ul>
+            </details>
           </div>
           <div class="panel">
-            <div class="panel-head"><h3>Song sketch</h3><span id="theme-tag" class="pill blue"></span></div>
-            <div id="sections" class="sections"></div>
+            <div class="panel-head"><h3>Lyric idea</h3><span id="theme-tag" class="pill blue"></span></div>
             <ol id="lyrics" class="lyrics"></ol>
+            <p id="song-form" class="muted small song-form"></p>
           </div>
         </div>
-
-        <details class="panel details">
-          <summary>Notes in each chord</summary>
-          <div id="voicings" class="voicings"></div>
-        </details>
       </div>
     </section>
 
@@ -155,14 +148,13 @@
       <div class="panel">
         <span class="eyebrow cyan">Step 3</span>
         <h2>What NoteFlow has learned</h2>
-        <p class="muted">Every reaction changes NoteFlow's taste rules. Here is each change, step by step.</p>
+        <p class="muted">Every reaction teaches NoteFlow a little more about your taste.</p>
         <div class="stats">
-          <div><span>Taste rules</span><b id="stat-rules"></b></div>
-          <div><span>Updates</span><b id="stat-version"></b></div>
-          <div><span>Reactions</span><b id="stat-feedback"></b></div>
+          <div><span>Things it knows</span><b id="stat-rules"></b></div>
+          <div><span>Your reactions</span><b id="stat-feedback"></b></div>
           <div><span>Ideas kept</span><b id="stat-kept"></b></div>
         </div>
-        <span class="eyebrow">Taste rules over time</span>
+        <span class="eyebrow">Growing over time</span>
         <div id="growth" class="growth"></div>
       </div>
 

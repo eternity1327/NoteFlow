@@ -11,7 +11,6 @@ const KIND_NAMES = {
   restore: "Picked up where you left off",
 };
 const TAB_NAMES = { studio: "Create", preferences: "Your taste", engine: "What it learned", split: "Credits" };
-const HOOKS = ["Chorus", "Drop"];
 const GROUPS = [
   ["Mood", ["darker", "brighter"]],
   ["Speed", ["faster", "slower"]],
@@ -52,7 +51,6 @@ const MAIN_CHANGES = ["darker", "brighter", "faster", "slower"];
 const DEMO = { genre: "lofi", mood: "melancholic", bpm: 82 };
 
 const esc = (text) => String(text ?? "").replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-const signed = (n) => (n > 0 ? `+${n}` : `${n}`);
 const band = (bpm) => (bpm < 90 ? "slow" : bpm < 115 ? "medium" : "fast");
 const phrase = (kind, value) => PHRASES[kind]?.(value) || `${kind} ${value}`;
 const positive = (stance) => stance === "likes" || stance === "loves";
@@ -65,9 +63,8 @@ function changeSentence(c) {
   return `Dislikes ${what} ${more ? "a bit less" : "even more"}`;
 }
 
-function changeItem(c, tag = "li") {
-  const up = c.to > c.from ? "up" : "down";
-  return `<${tag} class="learned ${up}"><span>${esc(changeSentence(c))}</span><small>${signed(c.from)} → ${signed(c.to)}</small></${tag}>`;
+function changeItem(c) {
+  return `<li class="learned ${c.to > c.from ? "up" : "down"}"><span>${esc(changeSentence(c))}</span></li>`;
 }
 
 async function api(path, body) {
@@ -187,39 +184,27 @@ function renderSuggestion() {
   $("#play").disabled = !ready;
   if (!ready) return;
   const { idea, reasons } = suggestion;
-  $("#pick-note").textContent = suggestion.explored
-    ? "Trying something new to learn your taste"
-    : `Best match for your taste, out of ${suggestion.considered} ideas`;
+  $("#pick-note").textContent = suggestion.explored ? "Trying something new to learn your taste" : "Picked for your taste";
   $("#pick-note").className = `pick-note ${suggestion.explored ? "explore" : ""}`;
-  $("#idea-title").textContent = `${idea.key[0].toUpperCase()}${idea.key.slice(1)} · ${idea.bpm} BPM`;
-  $("#idea-meta").textContent = `${state.options.genres[state.profile.genre]} · ${state.options.moods[idea.features.mood]} mood · ${phrase("harmony", idea.features.harmony)} · ${phrase("rhythm", idea.features.rhythm)}`;
+  $("#idea-title").textContent = `${idea.key[0].toUpperCase()}${idea.key.slice(1)}, ${idea.bpm} BPM`;
+  $("#idea-meta").textContent = `${state.options.genres[state.profile.genre]} · ${state.options.moods[idea.features.mood].toLowerCase()} mood`;
   $("#chords").innerHTML = idea.chords
-    .map((c) => `<div class="chord"><b>${esc(c.name)}</b><small>${esc(c.roman)} · ${esc(c.function)}</small></div>`)
-    .join('<span class="chord-arrow">→</span>');
-  $("#sections").innerHTML = idea.structure
-    .map((x) => `<span class="${HOOKS.includes(x.section) ? "hook" : ""}">${esc(x.section)} · ${x.bars} bars</span>`)
+    .map((c, i) => `<div class="chord"><small>Chord ${i + 1}</small><b>${esc(c.name)}</b></div>`)
     .join("");
   $("#theme-tag").textContent = `About ${idea.features.theme}`;
   $("#lyrics").innerHTML = idea.lyrics.map((line) => `<li>${esc(line)}</li>`).join("");
-  $("#voicings").innerHTML = idea.chords.map(voicingCard).join("");
-  $("#reasons").innerHTML = reasons.map(reasonRow).join("");
+  $("#song-form").textContent = `Song form: ${idea.structure.map((x) => x.section).join(" → ")}`;
+  const ranked = [...reasons].sort((a, b) => b.weight - a.weight);
+  $("#reasons").innerHTML = ranked.slice(0, 3).map(reasonRow).join("");
+  $("#reasons-all").innerHTML = ranked.slice(3).map(reasonRow).join("");
   $$(".verdict").forEach((b) => (b.disabled = false));
   $("#undo").disabled = !state.can_undo;
 }
 
-function voicingCard(chord) {
-  const low = Math.min(...chord.midi);
-  const range = Math.max(1, Math.max(...chord.midi) - low);
-  const bars = chord.midi
-    .map((m, j) => `<div><span>${esc(chord.notes[j])}</span><i style="width:${30 + (70 * (m - low)) / range}%"></i></div>`)
-    .join("");
-  return `<div class="voicing-card"><b>${esc(chord.name)}</b><div class="voicing">${bars}</div></div>`;
-}
-
 function reasonRow(r) {
   const mood = r.weight > 0 ? "up" : r.weight < 0 ? "down" : "";
-  const source = r.shaped_by === "Your preferences" ? "From your starting taste" : r.shaped_by ? `Learned from: ${r.shaped_by}` : "Not rated yet";
-  return `<li class="${mood}"><span>${esc(REASON[r.stance])} <b>${esc(phrase(r.kind, r.value))}</b></span><span class="w">${signed(r.weight)}</span><small>${esc(source)}</small></li>`;
+  const asked = r.shaped_by && r.shaped_by !== "Your preferences" ? `<small>Because: ${esc(r.shaped_by)}</small>` : "";
+  return `<li class="${mood}"><span>${esc(REASON[r.stance])} <b>${esc(phrase(r.kind, r.value))}</b></span>${asked}</li>`;
 }
 
 function changeButtons(ids, labels) {
@@ -278,7 +263,7 @@ function entryCard(e) {
     `<div class="entry-head"><span class="kind ${e.kind}">${KIND_NAMES[e.kind]}</span><span class="muted small">Update ${e.version} · ${timeAgo(e.time)}</span></div>`,
     e.kind === "setup" ? `<div>${esc(e.label.replace("Calibrated from preferences: ", "Started from your taste: "))}</div>` : `<div>${esc(e.label)}</div>`,
     e.quote ? `<div class="quote">"${esc(e.quote)}"</div>` : "",
-    changes.length ? `<ul class="learned-list">${changes.map((c) => changeItem(c)).join("")}</ul>` : "",
+    changes.length ? `<ul class="learned-list">${changes.map(changeItem).join("")}</ul>` : "",
     e.before ? `<div class="ba-row"><div class="ba"><span>Before</span><b>${esc(e.before)}</b></div><div class="ba-arrow">→</div><div class="ba after"><span>Next idea</span><b>${esc(e.after || "")}</b></div></div>` : "",
   ];
   return `<div class="entry ${e.version === freshVersion ? "fresh" : ""}">${parts.join("")}</div>`;
@@ -309,7 +294,6 @@ function renderEngine() {
   }
   const feedback = state.history.filter((h) => ["like", "dislike", "keep", "request"].includes(h.kind)).length;
   $("#stat-rules").textContent = `${state.seed_count} → ${state.rule_count}`;
-  $("#stat-version").textContent = state.version;
   $("#stat-feedback").textContent = feedback;
   $("#stat-kept").textContent = state.song.length;
   const peak = Math.max(...state.history.map((h) => h.count), 1);
@@ -408,11 +392,8 @@ function renderAll() {
 
 function showChanged(entry) {
   const changes = entry.changes || [];
-  const more = changes.length > 5 ? `<li class="learned muted">…and ${changes.length - 5} more in "What it learned"</li>` : "";
   $("#changed-label").textContent = entry.label;
-  $("#changed-before").textContent = entry.before;
-  $("#changed-after").textContent = entry.after;
-  $("#changed-list").innerHTML = changes.slice(0, 5).map((c) => changeItem(c)).join("") + more;
+  $("#changed-list").innerHTML = changes.slice(0, 3).map(changeItem).join("");
   $("#changed").hidden = false;
 }
 
@@ -458,6 +439,7 @@ async function guarded(task, label = "Writing a new idea…") {
 
 $$(".tabs button").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
 $$(".go-preferences").forEach((b) => b.addEventListener("click", () => showTab("preferences")));
+$$(".go-learned").forEach((b) => b.addEventListener("click", () => showTab("engine")));
 $("#play").addEventListener("click", () => ($("#play").classList.contains("playing") ? stopAudio() : play()));
 
 $("#regenerate").addEventListener("click", () => guarded(async () => {
