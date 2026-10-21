@@ -92,6 +92,11 @@ def compose(explore=True, fixed=None, avoid=None):
     explored = explore and random.random() < EXPLORE_RATE
     idea = random.choice(candidates) if explored else max(candidates, key=lambda i: agent.score(i["features"]))
     g.s.ideas[idea["id"]] = idea
+    return describe(idea, explored)
+
+
+def describe(idea, explored=False):
+    agent = g.s.agent
     return {
         "idea": idea,
         "summary": composer.summary(idea),
@@ -153,7 +158,7 @@ def feedback():
     person = who(data)
     if verdict == "keep":
         g.s.song.append({"who": person, "summary": composer.summary(idea), "idea": idea})
-    extra = {"who": person, "before": composer.summary(idea)}
+    extra = {"who": person, "before": composer.summary(idea), "idea_id": idea["id"]}
     entry = g.s.agent.rate(idea["features"], verdict, f"{VERDICT_LABELS[verdict]} by {person}", extra)
     return after_learning(entry, explore=True)
 
@@ -174,7 +179,7 @@ def change_request():
         return jsonify({"error": f"I couldn't match that to a change yet. Try: {hint}."}), 400
     person = who(data)
     names = ", ".join(labels[w] for w in wanted)
-    extra = {"who": person, "before": composer.summary(idea), "quote": text or None}
+    extra = {"who": person, "before": composer.summary(idea), "idea_id": idea["id"], "quote": text or None}
     entry = agent.request(idea["features"], wanted, f"Asked by {person}: {names}", extra)
     return after_learning(entry, False, *steer(entry["changes"]))
 
@@ -187,12 +192,25 @@ def reset():
     return jsonify({"state": current_state(), "suggestion": compose(explore=False)})
 
 
+@app.post("/api/undo")
+def undo():
+    agent = g.s.agent
+    if not agent.profile or not agent.undoable():
+        return jsonify({"error": "Nothing to undo"}), 400
+    entry = agent.undo()
+    if entry["kind"] == "keep" and g.s.song:
+        g.s.song.pop()
+    idea = g.s.ideas.get(entry.get("idea_id"))
+    suggestion = describe(idea) if idea else compose(explore=False)
+    return jsonify({"state": current_state(), "suggestion": suggestion, "undone": entry["label"]})
+
+
 @app.post("/api/splits")
 def splits():
     contributors = body().get("contributors", [])
     if not isinstance(contributors, list):
         return jsonify({"error": "Contributors must be a list"}), 400
-    return jsonify({"rows": g.s.agent.split_sheet(contributors[:20])})
+    return jsonify(g.s.agent.check_split(contributors[:20]))
 
 
 if __name__ == "__main__":

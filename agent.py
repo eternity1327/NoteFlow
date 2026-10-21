@@ -12,6 +12,8 @@ ROOT = Path(__file__).parent
 METTA_DIR = ROOT / "metta"
 DATA_DIR = ROOT / "data"
 VERDICTS = ("like", "dislike", "keep")
+UNDOABLE = ("like", "dislike", "keep", "request")
+HIDDEN = ("text", "prefs")
 
 
 def pref_line(kind, value, weight):
@@ -20,18 +22,6 @@ def pref_line(kind, value, weight):
 
 def diff(old, new):
     return [line for line in difflib.ndiff(old.splitlines(), new.splitlines()) if line[:1] in "+-"]
-
-
-def percentages(points):
-    total = sum(points)
-    if not total:
-        return [0] * len(points)
-    raw = [p * 100 / total for p in points]
-    result = [int(r) for r in raw]
-    order = sorted(range(len(raw)), key=lambda i: raw[i] - result[i], reverse=True)
-    for i in order[: 100 - sum(result)]:
-        result[i] += 1
-    return result
 
 
 def as_args(features):
@@ -75,6 +65,9 @@ class Agent:
         self.ask("(forget-all)")
         self.metta.run(text)
 
+    def pref_text(self, rows):
+        return "".join(pref_line(k, v, w) + "\n" for k, v, w in rows)
+
     def prefs(self):
         found = self.ask("(collapse (match &self (pref $k $v $w) ($k $v $w)))")[0].get_children()
         rows = [[str(x) for x in atom.get_children()] for atom in found]
@@ -95,7 +88,7 @@ class Agent:
     def save(self):
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.setup_file.write_text(json.dumps(self.profile))
-        self.learned_file.write_text("".join(pref_line(k, v, w) + "\n" for (k, v), w in sorted(self.prefs().items())))
+        self.learned_file.write_text(self.pref_text((k, v, w) for (k, v), w in sorted(self.prefs().items())))
 
     def calibrate(self, name, genre, mood, bpm):
         if genre not in GENRES or mood not in MOODS or not 60 <= int(bpm) <= 180:
@@ -195,6 +188,7 @@ class Agent:
             "time": datetime.now().isoformat(timespec="seconds"),
             "text": text,
             "count": len(self.prefs()),
+            "prefs": [[k, v, w] for (k, v), w in sorted(self.prefs().items())],
             "diff": diff(previous, text),
             "changes": [],
         } | extra
@@ -214,27 +208,54 @@ class Agent:
             "rule_count": last["count"],
             "seed_count": self.history[0]["count"],
             "since_setup": diff(self.seed_text, last["text"]),
-            "history": [{k: v for k, v in h.items() if k != "text"} for h in self.history],
+            "can_undo": self.undoable(),
+            "history": [{k: v for k, v in h.items() if k not in HIDDEN} for h in self.history],
         }
 
-    def roles(self):
-        found = self.ask("(collapse (match &self (role-share $r $p) ($r $p)))")[0].get_children()
-        pairs = [atom.get_children() for atom in found]
-        return {str(r): int(str(p)) for r, p in pairs}
+    def undoable(self):
+        return len(self.history) > 1 and self.history[-1]["kind"] in UNDOABLE
 
-    def split_sheet(self, contributors):
-        known = self.roles()
-        people = {}
-        for person in contributors:
+    def undo(self):
+        if not self.undoable():
+            raise ValueError("Nothing to undo")
+        undone = self.history.pop()
+        self.load(self.pref_text(self.history[-1]["prefs"]))
+        self.shaped_by = {(k, v): "Your preferences" for k, v, _ in self.history[0]["prefs"]}
+        for entry in self.history[1:]:
+            for change in entry["changes"]:
+                self.shaped_by[(change["kind"], change["value"])] = entry["label"]
+        self.save()
+        return undone
+
+    def roles(self):
+        return [str(atom) for atom in self.ask("(collapse (match &self (role $r) $r))")[0].get_children()]
+
+    def check_split(self, contributors):
+        known = set(self.roles())
+        problems, shares, seen = [], [], set()
+        if not contributors:
+            problems.append("Add at least one collaborator.")
+        for number, person in enumerate(contributors, 1):
             if not isinstance(person, dict):
                 continue
             name = str(person.get("name", "")).strip()
+            label = name or f"Collaborator {number}"
             roles = [r for r in person.get("roles") or [] if isinstance(r, str) and r in known]
-            if name and roles:
-                people.setdefault(name, set()).update(roles)
-        names = list(people)
-        points = [self.number(f"(points ({' '.join(sorted(people[n]))}))") for n in names]
-        return [
-            {"name": n, "roles": sorted(people[n]), "points": p, "percent": s}
-            for n, p, s in zip(names, points, percentages(points))
-        ]
+            share = person.get("share")
+            if not name:
+                problems.append(f"{label} needs a name.")
+            elif name.lower() in seen:
+                problems.append(f"{name} is listed twice.")
+            seen.add(name.lower())
+            if not roles:
+                problems.append(f"{label} needs at least one role.")
+            if type(share) is not int or not 1 <= share <= 100:
+                problems.append(f"{label} needs a whole-number share from 1 to 100%.")
+            else:
+                shares.append(share)
+        values = " ".join(map(str, shares))
+        total = self.number(f"(total ({values}))")
+        status = str(self.ask(f"(split-status ({values}))")[0])
+        if status != "complete":
+            problems.append(f"Shares add up to {total}%, not 100%.")
+        return {"total": total, "status": status, "problems": problems, "ok": not problems}

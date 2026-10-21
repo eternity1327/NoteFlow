@@ -3,7 +3,7 @@ import random
 import pytest
 
 import composer
-from agent import Agent, percentages
+from agent import Agent
 
 IDEA = {
     "mood": "melancholic",
@@ -64,6 +64,7 @@ def test_change_request_moves_weights_and_explains(agent):
 def test_parse_request_reads_keywords(agent):
     assert agent.parse_request("Make it sadder, jazzier and faster") == ["darker", "richer", "faster"]
     assert agent.parse_request("hello") == []
+    assert agent.parse_request("softer but more energetic") == ["softer", "more-energy"]
 
 
 def test_unknown_inputs_are_rejected(agent):
@@ -86,15 +87,25 @@ def test_learning_persists_and_resets(tmp_path):
     assert restored.state()["version"] == 0
 
 
-def test_split_sheet_adds_up_to_100(agent):
-    rows = agent.split_sheet([
-        {"name": "Gian", "roles": ["music", "melody"]},
-        {"name": "Rufert", "roles": ["lyrics"]},
-        {"name": "Michael", "roles": ["arrangement", "production"]},
-        {"name": "", "roles": ["lyrics"]},
+def test_split_check_never_invents_shares(agent):
+    ok = agent.check_split([
+        {"name": "Gian", "roles": ["music", "melody"], "share": 50},
+        {"name": "Rufert", "roles": ["lyrics"], "share": 30},
+        {"name": "Michael", "roles": ["arrangement"], "share": 20},
     ])
-    assert [r["percent"] for r in rows] == [50, 30, 20]
-    assert sum(percentages([1, 1, 1])) == 100
+    assert ok == {"total": 100, "status": "complete", "problems": [], "ok": True}
+    bad = agent.check_split([{"name": "Gian", "roles": ["music"], "share": 70}, {"name": "", "roles": [], "share": 0}])
+    assert bad["status"] == "under" and bad["total"] == 70 and not bad["ok"]
+    assert len(bad["problems"]) == 4
+
+
+def test_undo_restores_rules_and_history(agent):
+    before = agent.prefs()
+    agent.request(IDEA, ["softer", "more-energy"], "Asked", {})
+    assert agent.prefs() != before and agent.state()["can_undo"]
+    agent.undo()
+    assert agent.prefs() == before
+    assert agent.state()["version"] == 0 and not agent.state()["can_undo"]
 
 
 def test_composer_builds_correct_chords():

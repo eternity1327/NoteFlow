@@ -34,8 +34,22 @@ def test_old_sessions_are_dropped(client, monkeypatch):
     assert len(server.sessions) == 2
 
 
+def test_undo_brings_back_the_previous_idea(client):
+    idea = client.post("/api/setup", json=SETUP).json["suggestion"]["idea"]
+    client.post("/api/feedback", json={"id": idea["id"], "verdict": "keep"})
+    undone = client.post("/api/undo").json
+    assert undone["suggestion"]["idea"]["id"] == idea["id"]
+    assert undone["state"]["song"] == [] and undone["state"]["version"] == 0
+    assert client.post("/api/undo").status_code == 400
+
+
+def test_split_check_uses_entered_shares(client):
+    people = [{"name": "A", "roles": ["music"], "share": 60}, {"name": "B", "roles": ["lyrics"], "share": 40}]
+    assert client.post("/api/splits", json={"contributors": people}).json["ok"] is True
+
+
 def test_bad_input_is_rejected(client):
     assert client.post("/api/setup", json={"genre": "metal"}).status_code == 400
     assert client.post("/api/feedback", data="not json").status_code == 400
     assert client.post("/api/splits", json={"contributors": "x"}).status_code == 400
-    assert client.post("/api/splits", json={"contributors": [1, {"name": "A", "roles": [["x"]]}]}).status_code == 200
+    assert client.post("/api/splits", json={"contributors": [1, {"name": "A", "roles": [["x"]], "share": "9"}]}).json["ok"] is False

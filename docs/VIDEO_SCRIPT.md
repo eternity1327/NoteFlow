@@ -32,9 +32,9 @@ Open **Engine**. "Seven rules grew to N. Every card shows the feedback, the idea
 
 ## 1:45 to 2:30, the split sheet
 
-Open **Split sheet**. Add a song title. Both musicians who kept ideas are already listed. Add a lyricist. Tick roles and click **Propose shares with MeTTa**. Tick **Agreed** for everyone.
+Open **Split sheet**. Add a song title. Both musicians who kept ideas are already listed. Add a lyricist. Tick roles, type each person's share and click **Check with MeTTa**. Tick **Agreed** for everyone.
 
-"The shares come from MeTTa role rules, we can edit them, and the bar shows 100% accounted. The AI is disclosed and gets no share."
+"The collaborators set the shares, MeTTa checks they add up to 100%, and the sheet stays a draft until everyone agrees. The AI is disclosed and gets no share."
 
 Click **Download** and show the file.
 

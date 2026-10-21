@@ -1,11 +1,14 @@
-(role-share music 30)
-(role-share lyrics 30)
-(role-share melody 20)
-(role-share arrangement 10)
-(role-share production 10)
+(role music)
+(role lyrics)
+(role melody)
+(role arrangement)
+(role production)
 
-(= (role-points $r) (match &self (role-share $r $p) $p))
+(= (total $shares)
+   (if (== $shares ()) 0
+     (+ (car-atom $shares) (total (cdr-atom $shares)))))
 
-(= (points $roles)
-   (if (== $roles ()) 0
-     (+ (role-points (car-atom $roles)) (points (cdr-atom $roles)))))
+(= (split-status $shares)
+   (let $t (total $shares)
+     (if (== $t 100) complete
+       (if (< $t 100) under over))))

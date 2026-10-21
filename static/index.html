@@ -66,6 +66,19 @@
           </div>
         </div>
 
+        <div id="changed" class="panel changed" hidden>
+          <div class="panel-head">
+            <h3>What changed</h3>
+            <span id="changed-label" class="muted small"></span>
+          </div>
+          <div class="ba-row">
+            <div class="ba"><span>Before</span><b id="changed-before"></b></div>
+            <div class="ba-arrow">→</div>
+            <div class="ba after"><span>After: new idea</span><b id="changed-after"></b></div>
+          </div>
+          <div id="changed-deltas" class="deltas"></div>
+        </div>
+
         <div class="toolbar">
           <div id="sections" class="sections"></div>
           <button id="regenerate" class="soft">
@@ -93,6 +106,7 @@
               <p class="muted small">Every rating or change request updates the agent's MeTTa rules.</p>
             </div>
             <div class="rate">
+              <button id="undo" class="soft small" title="Undo the last rating or request" disabled>Undo last</button>
               <button data-verdict="like" class="icon-btn verdict" title="Like">
                 <svg viewBox="0 0 24 24"><path d="M7 11v9H4v-9zM7 11l4-7c1.5 0 2.5 1 2 3l-1 3h6c1 0 2 1 1.8 2.2l-1.4 6c-.2 1-1 1.8-2 1.8H7"/></svg>
               </button>
@@ -196,12 +210,13 @@
         <div id="alloc-legend" class="legend"></div>
       </div>
 
-      <div class="panel-head"><h3>Collaborators</h3><span class="muted small">Role shares come from metta/splits.metta</span></div>
+      <div class="panel-head"><h3>Collaborators</h3><span class="muted small">Enter each person's share. NoteFlow never assigns shares for you.</span></div>
       <div id="people" class="people"></div>
       <div class="row">
         <button id="add-person" class="soft">Add collaborator</button>
-        <button id="propose" class="primary">Propose shares with MeTTa</button>
+        <button id="check" class="primary">Check with MeTTa</button>
       </div>
+      <ul id="check-result" class="check-result" hidden></ul>
 
       <div class="panel ai-row">
         <div>
@@ -224,6 +239,7 @@
     </section>
   </main>
 
+  <div id="busy" class="busy-pill"><i></i><span>Composing…</span></div>
   <div id="toast" class="toast" hidden></div>
   <div id="print-area" class="print-area"></div>
   <script src="app.js"></script>

@@ -146,6 +146,7 @@ function renderSuggestion() {
   $("#score-tag").textContent = `MeTTa score ${signed(suggestion.score)}`;
   $("#reasons").innerHTML = reasons.map(reasonRow).join("");
   $$(".verdict").forEach((b) => (b.disabled = false));
+  $("#undo").disabled = !state.can_undo;
 }
 
 function chordCard(chord, i, idea) {
@@ -267,7 +268,7 @@ function syncPeople() {
   names.forEach((name) => {
     let person = people.find((p) => p.name === name);
     if (!person && !synced.has(name)) {
-      person = { name, roles: [], notes: "", share: 0, agreed: false };
+      person = { name, roles: [], notes: "", share: "", agreed: false };
       people.push(person);
     }
     synced.add(name);
@@ -281,14 +282,14 @@ function syncPeople() {
 }
 
 function personCard(p, i) {
-  const roles = Object.entries(state.options.roles)
-    .map(([role, points]) => `<label><input type="checkbox" data-i="${i}" data-role="${role}" ${p.roles.includes(role) ? "checked" : ""}> ${role} <span class="muted">${points}</span></label>`)
+  const roles = state.options.roles
+    .map((role) => `<label><input type="checkbox" data-i="${i}" data-role="${role}" ${p.roles.includes(role) ? "checked" : ""}> ${role}</label>`)
     .join("");
   return `
     <div class="person">
       <input data-i="${i}" data-field="name" value="${esc(p.name)}" placeholder="Collaborator name">
       <div class="roles">${roles}</div>
-      <div class="share"><input type="number" min="0" max="100" data-i="${i}" data-field="share" value="${p.share}">%</div>
+      <div class="share"><input type="number" min="1" max="100" step="1" placeholder="0" data-i="${i}" data-field="share" value="${p.share}">%</div>
       <button class="small" data-remove="${i}">Remove</button>
       <input class="notes" data-i="${i}" data-field="notes" value="${esc(p.notes)}" placeholder="Contribution notes, e.g. wrote the chorus lyrics">
       <label class="agree"><input type="checkbox" data-i="${i}" data-field="agreed" ${p.agreed ? "checked" : ""}><span class="status ${p.agreed ? "agreed" : "proposed"}">${p.agreed ? "Agreed" : "Proposed"}</span></label>
@@ -315,7 +316,7 @@ function renderAllocation() {
     .map((p, i) => `<span style="--c:${COLORS[i % COLORS.length]}">${esc(p.name || "Unnamed")} (${Number(p.share) || 0}%)</span>`)
     .join("");
   const ready = total === 100 && allAgreed;
-  $("#sheet-status").textContent = ready ? "All agreed · ready to sign" : "Draft";
+  $("#sheet-status").textContent = ready ? "All agreed · ready to sign" : "Draft · not yet agreed";
   $("#sheet-status").className = `pill mono ${ready ? "cyan" : ""}`;
 }
 
@@ -353,20 +354,43 @@ function summarize(changes) {
   return `${top.join(", ")}${more}.`;
 }
 
+function showChanged(entry) {
+  const changes = entry.changes || [];
+  const more = changes.length > 6 ? `<span class="delta">+${changes.length - 6} more in Engine</span>` : "";
+  $("#changed-label").textContent = entry.label;
+  $("#changed-before").textContent = entry.before;
+  $("#changed-after").textContent = entry.after;
+  $("#changed-deltas").innerHTML = changes.slice(0, 6).map(deltaChip).join("") + more;
+  $("#changed").hidden = false;
+}
+
 function learned(result) {
   state = result.state;
   suggestion = result.suggestion;
   freshVersion = result.entry.version;
   renderAll();
+  showChanged(result.entry);
+  window.scrollTo({ top: 0, behavior: "smooth" });
   toast(`Learned: ${summarize(result.entry.changes)} New idea ready.`);
   play();
 }
 
+function clearAgreements() {
+  people.forEach((p) => (p.agreed = false));
+  $$("[data-field=agreed]").forEach((box) => (box.checked = false));
+  $$(".agree .status").forEach((label) => {
+    label.textContent = "Proposed";
+    label.className = "status proposed";
+  });
+  $("#check-result").hidden = true;
+}
+
 let busy = false;
 
-async function guarded(task) {
+async function guarded(task, label = "Composing…") {
   if (busy) return;
   busy = true;
+  $("#busy span").textContent = label;
   document.body.classList.add("busy");
   try {
     await task();
@@ -385,6 +409,7 @@ $("#stop").addEventListener("click", stopAudio);
 
 $("#regenerate").addEventListener("click", () => guarded(async () => {
   suggestion = await api("/api/suggest", {});
+  $("#changed").hidden = true;
   renderSuggestion();
   play();
 }));
@@ -437,10 +462,11 @@ $("#calibrate").addEventListener("click", () => guarded(async () => {
   suggestion = result.suggestion;
   seenVersion = 0;
   $("#who").value = name;
+  $("#changed").hidden = true;
   renderAll();
   showTab("studio");
   toast(`Calibrated: the agent starts with ${state.seed_count} MeTTa rules from your preferences.`);
-}));
+}, "Calibrating…"));
 
 $("#reset").addEventListener("click", () => guarded(async () => {
   if (!confirm("Forget everything learned and go back to the rules from your preferences?")) return;
@@ -448,8 +474,18 @@ $("#reset").addEventListener("click", () => guarded(async () => {
   state = result.state;
   suggestion = result.suggestion;
   seenVersion = 0;
+  $("#changed").hidden = true;
   renderAll();
-}));
+}, "Resetting…"));
+
+$("#undo").addEventListener("click", () => guarded(async () => {
+  const result = await api("/api/undo", {});
+  state = result.state;
+  suggestion = result.suggestion;
+  $("#changed").hidden = true;
+  renderAll();
+  toast(`Undid "${result.undone}". The rules are back to the previous version.`);
+}, "Undoing…"));
 
 $$(".seg button").forEach((b) => b.addEventListener("click", () => {
   rulesView = b.dataset.rules;
@@ -460,7 +496,8 @@ $$(".seg button").forEach((b) => b.addEventListener("click", () => {
 $("#people").addEventListener("input", (e) => {
   const { i, field } = e.target.dataset;
   if (!field || field === "agreed") return;
-  people[i][field] = field === "share" ? Number(e.target.value) : e.target.value;
+  people[i][field] = field === "share" && e.target.value !== "" ? Number(e.target.value) : e.target.value;
+  if (field !== "notes") clearAgreements();
   renderAllocation();
 });
 
@@ -469,6 +506,7 @@ $("#people").addEventListener("change", (e) => {
   if (role) {
     const roles = people[i].roles;
     people[i].roles = e.target.checked ? [...roles, role] : roles.filter((r) => r !== role);
+    clearAgreements();
   }
   if (field === "agreed") {
     people[i].agreed = e.target.checked;
@@ -483,20 +521,20 @@ $("#people").addEventListener("click", (e) => {
 });
 
 $("#add-person").addEventListener("click", () => {
-  people.push({ name: "", roles: [], notes: "", share: 0, agreed: false });
+  people.push({ name: "", roles: [], notes: "", share: "", agreed: false });
   renderPeople();
 });
 
-$("#propose").addEventListener("click", () => guarded(async () => {
-  const { rows } = await api("/api/splits", { contributors: people });
-  if (!rows.length) throw new Error("Give each collaborator a name and at least one role.");
-  people.forEach((p) => {
-    p.share = rows.find((r) => r.name === p.name.trim())?.percent ?? 0;
-    p.agreed = false;
-  });
-  renderPeople();
-  toast("Shares proposed from the MeTTa role rules. Edit them until everyone agrees.");
-}));
+$("#check").addEventListener("click", () => guarded(async () => {
+  const contributors = people.map((p) => ({ ...p, share: p.share === "" ? null : Number(p.share) }));
+  const result = await api("/api/splits", { contributors });
+  const box = $("#check-result");
+  box.className = `check-result ${result.ok ? "ok" : "bad"}`;
+  box.innerHTML = result.ok
+    ? `<li>MeTTa check passed: ${result.total}% allocated, and every collaborator has a name, a role and a share.</li>`
+    : result.problems.map((problem) => `<li>${esc(problem)}</li>`).join("");
+  box.hidden = false;
+}, "Checking…"));
 
 function sheetData() {
   return {
@@ -507,10 +545,16 @@ function sheetData() {
   };
 }
 
+function sheetStatus(sheet) {
+  return sheet.total === 100 && people.length && people.every((p) => p.agreed)
+    ? "agreed by all collaborators, awaiting signatures"
+    : "DRAFT, not yet agreed";
+}
+
 $("#download").addEventListener("click", () => {
   const sheet = sheetData();
   const lines = [
-    `# Split sheet (draft): ${sheet.title}`,
+    `# Split sheet (${sheetStatus(sheet)}): ${sheet.title}`,
     "",
     `Date: ${sheet.date}`,
     `Total allocated: ${sheet.total}%`,
@@ -533,7 +577,7 @@ $("#download").addEventListener("click", () => {
     "",
     ...people.map((p) => `- ${p.name}: ______________________  Date: __________`),
     "",
-    "_Draft generated by NoteFlow. Not legal advice. All collaborators must agree before it is final._",
+    "_Generated by NoteFlow. Shares were entered by the collaborators. Not legal advice. Final only when everyone signs._",
   ];
   const link = document.createElement("a");
   link.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/markdown" }));
@@ -549,13 +593,13 @@ $("#print").addEventListener("click", () => {
   const ideas = sheet.song.map((s) => `<li>${esc(s.summary)} (kept by ${esc(s.who)})</li>`).join("") || "<li>None</li>";
   const signs = people.map((p) => `<p>${esc(p.name)}: ______________________ Date: __________</p>`).join("");
   $("#print-area").innerHTML = `
-    <h1>Split sheet (draft): ${esc(sheet.title)}</h1>
+    <h1>Split sheet (${sheetStatus(sheet)}): ${esc(sheet.title)}</h1>
     <p>Date: ${esc(sheet.date)} · Total allocated: ${sheet.total}%</p>
     <table><tr><th>Collaborator</th><th>Roles</th><th>Contribution</th><th>Share</th><th>Status</th></tr>${rows}</table>
     <h3>Work details</h3><ul>${ideas}</ul>
     <h3>AI disclosure</h3><p>NoteFlow suggested chords, song structures and lyric sketches. No royalty share is assigned to the AI.</p>
     <h3>Signatures</h3>${signs}
-    <p><em>Draft generated by NoteFlow. Not legal advice.</em></p>`;
+    <p><em>Generated by NoteFlow. Shares were entered by the collaborators. Not legal advice. Final only when everyone signs.</em></p>`;
   window.print();
 });
 
